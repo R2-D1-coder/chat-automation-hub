@@ -254,25 +254,35 @@ class WeChatBroadcaster:
         pyperclip.copy(group_name)
         _safe_sleep(0.1, 0.15)
         desktop.press_keys("ctrl", "v")
-        _safe_sleep(0.4, 0.6)  # 等待搜索结果
+        _safe_sleep(0.8, 1.0)  # 等待搜索结果出现（需要更长时间）
         
-        # 回车选择第一个结果
+        # 4. 按 Down 键选择第一个搜索结果（联系人/群聊）
+        log.debug("选择搜索结果")
+        desktop.press_keys("down")
+        _safe_sleep(0.2, 0.3)
+        
+        # 5. 按 Enter 进入聊天窗口
         desktop.press_keys("enter")
-        _safe_sleep(0.4, 0.6)  # 等待聊天窗口切换
+        _safe_sleep(0.5, 0.7)  # 等待聊天窗口切换
         
-        # 4. 再次确保窗口聚焦（防止切换群时焦点丢失）
+        # 6. 按 Esc 确保关闭搜索面板（如果还在的话）
+        desktop.press_keys("escape")
+        _safe_sleep(0.2, 0.3)
+        
+        # 7. 再次确保窗口聚焦（防止切换群时焦点丢失）
         self._focus_window(retry_count=1)
-        _safe_sleep(0.1, 0.2)
+        _safe_sleep(0.2, 0.3)
         
-        # 5. 输入消息文本
+        # 8. 输入消息文本
+        log.debug("输入消息文本")
         pyperclip.copy(text)
         _safe_sleep(0.1, 0.15)
         desktop.press_keys("ctrl", "v")
-        _safe_sleep(0.2, 0.3)  # 等待文本粘贴完成
+        _safe_sleep(0.3, 0.4)  # 等待文本粘贴完成
         
-        # 6. 发送（Enter）
+        # 9. 发送消息（Enter）
         desktop.press_keys("enter")
-        _safe_sleep(0.2, 0.3)
+        _safe_sleep(0.3, 0.4)
         
         log.info(f"消息已发送", group=group_name, text_len=len(text))
     
