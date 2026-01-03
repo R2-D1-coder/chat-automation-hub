@@ -7,8 +7,8 @@
     "screenshot_on_error": true
   },
   "safety": {
-    "armed": false,
-    "dry_run": true,
+    "armed": true,
+    "dry_run": false,
     "confirm": false
   },
   "allowed_groups": [
