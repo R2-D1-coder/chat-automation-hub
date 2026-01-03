@@ -254,20 +254,16 @@ class WeChatBroadcaster:
         pyperclip.copy(group_name)
         _safe_sleep(0.1, 0.15)
         desktop.press_keys("ctrl", "v")
-        _safe_sleep(0.8, 1.0)  # 等待搜索结果出现（需要更长时间）
+        _safe_sleep(1.0, 1.2)  # 等待搜索结果完全加载
         
-        # 4. 按 Down 键选择第一个搜索结果（联系人/群聊）
-        log.debug("选择搜索结果")
-        desktop.press_keys("down")
+        # 4. 按 Up 键从底部选择群聊结果（群聊分类在搜索结果最底部）
+        log.debug("选择搜索结果（Up 键从底部选择）")
+        desktop.press_keys("up")
         _safe_sleep(0.2, 0.3)
         
         # 5. 按 Enter 进入聊天窗口
         desktop.press_keys("enter")
         _safe_sleep(0.5, 0.7)  # 等待聊天窗口切换
-        
-        # 6. 按 Esc 确保关闭搜索面板（如果还在的话）
-        desktop.press_keys("escape")
-        _safe_sleep(0.2, 0.3)
         
         # 7. 再次确保窗口聚焦（防止切换群时焦点丢失）
         self._focus_window(retry_count=1)
