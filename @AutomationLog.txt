@@ -1,0 +1,2 @@
+2026-01-03 19:55:51.386 wechat_desktop.py[134] focus_independent_window -> Can not move cursor. WindowControl's BoundingRectangle is (0,0,0,0)[0x0]. SearchProperties: {ControlType: WindowControl}
+2026-01-03 19:56:09.874 wechat_desktop.py[134] focus_independent_window -> 

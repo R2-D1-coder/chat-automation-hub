@@ -338,7 +338,10 @@ class WeChatBroadcaster:
         if not self._ensure_windows_ready(groups):
             raise RuntimeError("独立窗口未就绪，请先打开目标群的独立聊天窗口")
         
-        # 4. 执行广播
+        # 4. 获取随机延迟配置
+        random_delay_minutes = self.config.get("wechat", {}).get("random_delay_minutes", 0)
+        
+        # 5. 执行广播
         stats = {"sent": 0, "skipped": 0, "failed": 0}
         rate_limiter = get_rate_limiter()
         
@@ -351,6 +354,14 @@ class WeChatBroadcaster:
                 log.info(f"    跳过（间隔内）")
                 stats["skipped"] += 1
                 continue
+            
+            # 每个群独立的随机延迟
+            if random_delay_minutes > 0 and not self.dry_run:
+                delay_seconds = random.randint(0, random_delay_minutes * 60)
+                delay_min = delay_seconds // 60
+                delay_sec = delay_seconds % 60
+                log.info(f"    随机延迟 {delay_min} 分 {delay_sec} 秒")
+                time.sleep(delay_seconds)
             
             # 限频等待
             waited = rate_limiter.acquire()
@@ -368,8 +379,8 @@ class WeChatBroadcaster:
                     self._take_screenshot(f"send_failed_{group}")
                 stats["failed"] += 1
             
-            # 消息间延迟
-            if i < len(groups):
+            # 消息间延迟（随机延迟已包含间隔效果，这里只在没有随机延迟时生效）
+            if i < len(groups) and random_delay_minutes == 0:
                 time.sleep(self.per_message_delay_sec)
         
         log.info("广播完成", **stats)

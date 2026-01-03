@@ -28,13 +28,25 @@
                         <label class="form-label">
                             <i class="bi bi-people me-1"></i>目标群组 <span class="text-danger">*</span>
                         </label>
+                        {% if allowed_groups %}
+                        <div class="mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllGroups()">
+                                <i class="bi bi-check-all me-1"></i>全选
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllGroups()">
+                                <i class="bi bi-x-lg me-1"></i>取消全选
+                            </button>
+                            <span class="text-muted ms-2" id="selectedCount">已选: 0</span>
+                        </div>
+                        {% endif %}
                         <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
                             {% set selected_groups = task.groups | to_json %}
                             {% for group in allowed_groups %}
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" 
+                                <input class="form-check-input group-checkbox" type="checkbox" 
                                        name="groups" value="{{ group }}" id="group_{{ loop.index }}"
-                                       {% if group in selected_groups %}checked{% endif %}>
+                                       {% if group in selected_groups %}checked{% endif %}
+                                       onchange="updateSelectedCount()">
                                 <label class="form-check-label" for="group_{{ loop.index }}">
                                     {{ group }}
                                 </label>
@@ -97,7 +109,8 @@
                             <code>daily HH:MM</code> - 每天指定时间（如 <code>daily 20:00</code> 每天晚上8点）<br>
                             <code>weekly N HH:MM</code> - 每周指定日期（0=周日，6=周六，如 <code>weekly 6 12:00</code> 每周六中午）<br>
                             <code>monthly D HH:MM</code> - 每月指定日期（如 <code>monthly 1 09:00</code> 每月1日早上9点）<br>
-                            <strong>标准 Cron：</strong><code>分 时 日 月 周</code>（如 <code>0 20 * * *</code>）
+                            <strong>标准 Cron：</strong><code>分 时 日 月 周</code><br>
+                            &nbsp;&nbsp;如 <code>0 20 * * *</code> 每天20:00 | <code>0 20 * * 3,5,6</code> 每周三、五、六 20:00
                         </div>
                     </div>
                     
@@ -124,5 +137,31 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectAllGroups() {
+    document.querySelectorAll('.group-checkbox').forEach(cb => cb.checked = true);
+    updateSelectedCount();
+}
+
+function deselectAllGroups() {
+    document.querySelectorAll('.group-checkbox').forEach(cb => cb.checked = false);
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const count = document.querySelectorAll('.group-checkbox:checked').length;
+    const el = document.getElementById('selectedCount');
+    if (el) {
+        el.textContent = '已选: ' + count;
+        el.className = count > 0 ? 'text-success ms-2 fw-bold' : 'text-muted ms-2';
+    }
+}
+
+// 页面加载时更新计数
+document.addEventListener('DOMContentLoaded', updateSelectedCount);
+</script>
 {% endblock %}
 

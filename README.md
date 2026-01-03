@@ -81,7 +81,34 @@ python run_web.py
 | 每天晚上 8 点 | `daily 20:00` |
 | 每周六中午 12 点 | `weekly 6 12:00` |
 | 每月 1 日早上 9 点 | `monthly 1 09:00` |
+| 每周三、五、六 20:00 | `0 20 * * 3,5,6` |
 | 标准 Cron | `0 20 * * *` |
+
+> **周几对应**：0=周日, 1=周一, 2=周二, 3=周三, 4=周四, 5=周五, 6=周六
+
+### 随机时间发送
+
+在 `config.json` 中设置 `random_delay_minutes`，**每个群发送前**会有独立的随机延迟：
+
+```json
+{
+  "wechat": {
+    "random_delay_minutes": 30
+  }
+}
+```
+
+**效果**：定时 `8:00`，设置 `random_delay_minutes: 30`，发送 3 个群：
+
+```
+8:00 任务触发
+  ↓
+群1: 随机延迟 5 分 → 8:05 发送
+群2: 随机延迟 22 分 → 8:27 发送  
+群3: 随机延迟 18 分 → 8:45 发送
+```
+
+每个群的发送时间都是独立随机的，范围 0 ~ `random_delay_minutes` 分钟。
 
 ---
 
@@ -155,6 +182,7 @@ flowchart TD
 | `max_per_minute` | 每分钟最大发送数 | 10 |
 | `min_send_interval_sec` | 同一群最小发送间隔（秒） | 60 |
 | `screenshot_on_error` | 失败时截图 | true |
+| `random_delay_minutes` | 随机延迟分钟数（0=不延迟） | 0 |
 | `armed` | 安全保险丝 | false |
 | `dry_run` | 试运行模式 | true |
 | `allowed_groups` | 白名单群组列表 | [] |
