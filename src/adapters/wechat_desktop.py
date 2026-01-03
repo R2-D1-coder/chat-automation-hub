@@ -1,4 +1,4 @@
-"""微信桌面客户端适配器"""
+"""微信桌面客户端适配器 - 独立窗口版"""
 import ctypes
 import io
 import random
@@ -6,9 +6,10 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 import pyperclip
+import uiautomation as auto
 
 from src.core.config import load_config
 from src.core.dedupe import should_send, mark_sent
@@ -283,6 +284,117 @@ def _copy_image_to_clipboard(image_path: Path) -> bool:
         return False
 
 
+# ============================================================
+# 独立窗口操作函数
+# ============================================================
+
+def find_independent_chat_windows() -> List[Dict[str, Any]]:
+    """
+    查找所有微信独立聊天窗口
+    
+    Returns:
+        窗口信息列表，每个元素包含 name, window, rect
+    """
+    windows = []
+    try:
+        root = auto.GetRootControl()
+        
+        for win in root.GetChildren():
+            try:
+                class_name = win.ClassName or ""
+                name = win.Name or ""
+                
+                # 微信聊天窗口特征：Qt51514QWindowIcon 类名，且名字不是"微信"
+                if "Qt51514QWindowIcon" in class_name and name and name != "微信":
+                    # 提取纯群名（去掉可能的消息数，如 "家人们(5)" -> "家人们"）
+                    pure_name = re.sub(r'\(\d+\)$', '', name).strip()
+                    windows.append({
+                        "name": name,           # 原始窗口名（可能带消息数）
+                        "pure_name": pure_name, # 纯群名
+                        "window": win,
+                        "rect": win.BoundingRectangle
+                    })
+            except Exception:
+                pass
+    except Exception as e:
+        log.error(f"查找独立窗口失败", error=str(e))
+    
+    return windows
+
+
+def find_window_by_group_name(group_name: str) -> Optional[Dict[str, Any]]:
+    """
+    按群名查找独立窗口
+    
+    Args:
+        group_name: 群名称
+        
+    Returns:
+        窗口信息字典，未找到返回 None
+    """
+    windows = find_independent_chat_windows()
+    
+    for w in windows:
+        # 精确匹配纯群名
+        if w["pure_name"] == group_name:
+            return w
+        # 也尝试匹配原始窗口名
+        if w["name"] == group_name:
+            return w
+    
+    # 模糊匹配（群名包含在窗口名中）
+    for w in windows:
+        if group_name in w["pure_name"] or group_name in w["name"]:
+            return w
+    
+    return None
+
+
+def focus_independent_window(window_info: Dict[str, Any]) -> bool:
+    """
+    聚焦独立窗口
+    
+    Args:
+        window_info: find_window_by_group_name 返回的窗口信息
+        
+    Returns:
+        True 如果成功，False 如果失败
+    """
+    try:
+        win = window_info["window"]
+        name = window_info["name"]
+        
+        # 激活窗口
+        win.SetFocus()
+        time.sleep(0.2)
+        
+        # 点击窗口确保获得焦点
+        try:
+            win.Click()
+        except Exception:
+            pass
+        
+        time.sleep(0.2)
+        log.info(f"独立窗口已聚焦", name=name)
+        return True
+        
+    except Exception as e:
+        log.error(f"聚焦独立窗口失败", error=str(e))
+        return False
+
+
+def send_keys_to_window(keys: str, delay: float = 0.1):
+    """
+    发送按键（使用 uiautomation）
+    
+    Args:
+        keys: 按键字符串，如 "{Ctrl}v", "{Enter}"
+        delay: 按键后延迟
+    """
+    auto.SendKeys(keys)
+    time.sleep(delay)
+
+
 class SafetyError(Exception):
     """安全保险丝触发异常"""
     pass
@@ -400,9 +512,12 @@ class WeChatBroadcaster:
             log.error(f"截图失败", error=str(e))
             return None
     
-    def _ensure_wechat_ready(self) -> bool:
+    def _ensure_wechat_ready(self, groups: Optional[List[str]] = None) -> bool:
         """
-        确保微信窗口就绪
+        确保微信独立窗口就绪（独立窗口版）
+        
+        Args:
+            groups: 可选，需要检查的群列表
         
         Returns:
             True 如果成功，False 如果失败
@@ -411,42 +526,31 @@ class WeChatBroadcaster:
             log.info("[DRY_RUN] 跳过微信窗口检查")
             return True
         
-        windows = self._get_windows()
-        desktop = self._get_desktop()
+        # 检查是否有独立窗口打开
+        available_windows = find_independent_chat_windows()
         
-        try:
-            # 尝试聚焦已有窗口
-            windows.control_window(f"regex:{self.window_title_regex}")
-            log.info("微信窗口已聚焦")
-            time.sleep(0.3)  # 等待窗口响应
-            return True
-        except Exception as e:
-            log.warn(f"未找到微信窗口，尝试启动", error=str(e))
+        if not available_windows:
+            log.error("未找到任何微信独立聊天窗口！")
+            log.error("请先在微信中双击聊天打开独立窗口")
+            self._take_screenshot("no_independent_windows")
+            return False
         
-        try:
-            # 启动微信
-            desktop.open_application(self.exe_path)
-            log.info("已启动微信，等待窗口出现...")
+        log.info(f"找到 {len(available_windows)} 个独立聊天窗口:")
+        for w in available_windows:
+            log.info(f"  - {w['pure_name']}")
+        
+        # 如果指定了群列表，检查是否都有对应的独立窗口
+        if groups:
+            missing = []
+            for group in groups:
+                if not find_window_by_group_name(group):
+                    missing.append(group)
             
-            # 等待窗口出现（最多 30 秒）
-            for _ in range(30):
-                time.sleep(1)
-                try:
-                    windows.control_window(f"regex:{self.window_title_regex}")
-                    log.info("微信窗口已就绪")
-                    time.sleep(0.5)
-                    return True
-                except Exception:
-                    pass
-            
-            log.error("等待微信窗口超时")
-            self._take_screenshot("startup_timeout")
-            return False
-            
-        except Exception as e:
-            log.error(f"启动微信失败", error=str(e))
-            self._take_screenshot("startup_failed")
-            return False
+            if missing:
+                log.warn(f"以下群没有打开独立窗口: {missing}")
+                log.warn("这些群的消息将无法发送")
+        
+        return True
     
     def _focus_window(self, retry_count: int = 3) -> bool:
         """
@@ -487,7 +591,9 @@ class WeChatBroadcaster:
     @retry(max_attempts=3, base_delay=1.0, jitter=0.3, exceptions=(Exception,))
     def _send_to_group(self, group_name: str, text: str, image_path: Optional[Path] = None):
         """
-        发送消息到指定群
+        发送消息到指定群（独立窗口版）
+        
+        前提条件：目标群的聊天窗口已作为独立窗口打开
         
         Args:
             group_name: 群名称
@@ -495,7 +601,7 @@ class WeChatBroadcaster:
             image_path: 可选的图片路径，如果提供则先发送图片
             
         Raises:
-            RuntimeError: 窗口聚焦失败时
+            RuntimeError: 窗口未找到或聚焦失败时
         """
         if self.dry_run:
             log.info(f"[DRY_RUN] 将发送到群",
@@ -508,85 +614,60 @@ class WeChatBroadcaster:
         log.info("=" * 40)
         log.info(f"[开始发送] 目标群: {group_name}")
         
-        desktop = self._get_desktop()
-        log.info("[步骤 1/9] 获取 Desktop 实例完成")
+        # 1. 查找独立窗口
+        log.info("[步骤 1/5] 查找独立窗口...")
+        window_info = find_window_by_group_name(group_name)
         
-        # 1. 确保窗口聚焦（关键步骤，失败则抛出异常触发重试）
-        log.info("[步骤 2/9] 尝试聚焦微信窗口...")
-        if not self._focus_window():
-            log.error("[步骤 2/9] 聚焦窗口失败！")
-            raise RuntimeError(f"无法聚焦微信窗口，无法发送到群: {group_name}")
-        log.info("[步骤 2/9] 窗口聚焦成功")
+        if not window_info:
+            log.error(f"[步骤 1/5] 未找到群 '{group_name}' 的独立窗口！")
+            # 列出当前可用的独立窗口
+            available = find_independent_chat_windows()
+            if available:
+                log.info(f"当前可用的独立窗口: {[w['pure_name'] for w in available]}")
+            raise RuntimeError(f"未找到群 '{group_name}' 的独立窗口，请先打开该群的独立聊天窗口")
         
-        # 2. Ctrl+F 打开搜索
-        log.info("[步骤 3/9] 按 Ctrl+F 打开搜索框...")
-        desktop.press_keys("ctrl", "f")
-        _safe_sleep(0.3, 0.5)
-        log.info("[步骤 3/9] 搜索框已打开")
+        log.info(f"[步骤 1/5] 找到窗口: {window_info['name']}")
         
-        # 3. 清空搜索框并输入群名
-        log.info("[步骤 4/9] 清空搜索框 (Ctrl+A)...")
-        desktop.press_keys("ctrl", "a")
-        _safe_sleep(0.1, 0.2)
+        # 2. 聚焦独立窗口
+        log.info("[步骤 2/5] 聚焦独立窗口...")
+        if not focus_independent_window(window_info):
+            raise RuntimeError(f"无法聚焦群 '{group_name}' 的独立窗口")
+        log.info("[步骤 2/5] 窗口聚焦成功")
         
-        # 使用剪贴板输入群名（避免中文输入法问题）
-        log.info(f"[步骤 4/9] 复制群名到剪贴板: '{group_name}'")
-        pyperclip.copy(group_name)
-        _safe_sleep(0.1, 0.15)
-        
-        log.info("[步骤 4/9] 粘贴群名 (Ctrl+V)...")
-        desktop.press_keys("ctrl", "v")
-        log.info("[步骤 4/9] 等待搜索结果加载 (1秒)...")
-        _safe_sleep(1.0, 1.2)
-        
-        # 4. 按 Up 键从底部选择群聊结果（群聊分类在搜索结果最底部）
-        log.info("[步骤 5/9] 按 Up 键选择群聊结果...")
-        desktop.press_keys("up")
+        # 3. 验证窗口名称（闭环验证）
+        log.info("[步骤 3/5] 验证窗口...")
         _safe_sleep(0.2, 0.3)
-        log.info("[步骤 5/9] 已按 Up 键")
+        # 重新获取窗口信息验证
+        verify_window = find_window_by_group_name(group_name)
+        if not verify_window:
+            log.warn("[步骤 3/5] 验证失败，窗口可能已关闭")
+            raise RuntimeError(f"验证失败：群 '{group_name}' 的窗口可能已关闭")
+        log.info(f"[步骤 3/5] 验证通过: {verify_window['name']}")
         
-        # 5. 按 Enter 进入聊天窗口
-        log.info("[步骤 6/8] 按 Enter 进入聊天窗口...")
-        desktop.press_keys("enter")
-        _safe_sleep(0.5, 0.7)
-        log.info("[步骤 6/8] 已按 Enter，等待切换完成")
-        
-        # 6. 点击输入框区域（最可靠的方式）
-        log.info("[步骤 7/8] 点击输入框区域...")
-        if not _click_wechat_input_box():
-            log.warn("[步骤 7/8] 点击输入框失败，尝试 Tab 键")
-            desktop.press_keys("tab")
-            _safe_sleep(0.2, 0.3)
-        _safe_sleep(0.3, 0.4)
-        
-        # 7. 如果有图片，先发送图片
+        # 4. 如果有图片，先发送图片
         if image_path and image_path.exists():
-            log.info(f"[步骤 8/8] 发送图片: {image_path}")
+            log.info(f"[步骤 4/5] 发送图片: {image_path}")
             if _copy_image_to_clipboard(image_path):
-                log.info("[步骤 8/8] 图片已复制到剪贴板，粘贴中...")
-                desktop.press_keys("ctrl", "v")
-                _safe_sleep(0.5, 0.7)
-                log.info("[步骤 8/8] 按 Enter 发送图片...")
-                desktop.press_keys("enter")
-                _safe_sleep(0.5, 0.7)
-                log.info("[步骤 8/8] 图片已发送")
+                log.info("[步骤 4/5] 图片已复制到剪贴板，粘贴中...")
+                send_keys_to_window("{Ctrl}v", 0.3)
+                log.info("[步骤 4/5] 按 Enter 发送图片...")
+                send_keys_to_window("{Enter}", 0.5)
+                log.info("[步骤 4/5] 图片已发送")
             else:
-                log.warn("[步骤 8/8] 图片复制失败，跳过图片发送")
+                log.warn("[步骤 4/5] 图片复制失败，跳过图片发送")
         else:
-            log.info("[步骤 8/8] 无图片，跳过")
+            log.info("[步骤 4/5] 无图片，跳过")
         
-        # 8. 输入消息文本并发送
-        log.info(f"[步骤 8/8] 发送文本消息 ({len(text)} 字符)...")
+        # 5. 输入消息文本并发送
+        log.info(f"[步骤 5/5] 发送文本消息 ({len(text)} 字符)...")
         pyperclip.copy(text)
         _safe_sleep(0.1, 0.15)
-        log.info("[步骤 8/8] 文本已复制，粘贴中...")
-        desktop.press_keys("ctrl", "v")
-        _safe_sleep(0.3, 0.4)
         
-        # 发送消息（Enter）
-        log.info("[步骤 8/8] 按 Enter 发送消息...")
-        desktop.press_keys("enter")
-        _safe_sleep(0.3, 0.4)
+        log.info("[步骤 5/5] 粘贴文本...")
+        send_keys_to_window("{Ctrl}v", 0.2)
+        
+        log.info("[步骤 5/5] 按 Enter 发送...")
+        send_keys_to_window("{Enter}", 0.3)
         
         log.info(f"[发送完成] 群: {group_name}, 文本: {len(text)} 字符, 图片: {image_path is not None}")
         log.info("=" * 40)
@@ -594,23 +675,15 @@ class WeChatBroadcaster:
     def _try_recover_window_state(self):
         """
         尝试恢复窗口状态（发送失败后调用）
-        - 按 Esc 关闭可能的弹窗/搜索框
-        - 重新聚焦窗口
+        - 按 Esc 关闭可能的弹窗
         """
         if self.dry_run:
             return
         
         try:
-            desktop = self._get_desktop()
-            
-            # 按 Esc 关闭可能的弹窗或搜索框
-            desktop.press_keys("esc")
-            _safe_sleep(0.2, 0.3)
-            desktop.press_keys("esc")
-            _safe_sleep(0.2, 0.3)
-            
-            # 尝试重新聚焦
-            self._focus_window(retry_count=2)
+            # 按 Esc 关闭可能的弹窗
+            send_keys_to_window("{Esc}", 0.2)
+            send_keys_to_window("{Esc}", 0.2)
             
             log.debug("窗口状态恢复完成")
         except Exception as e:
@@ -655,12 +728,12 @@ class WeChatBroadcaster:
             )
         log.info("安全保险丝检查通过")
         
-        # 3. 确保微信就绪
-        log.info("检查微信窗口状态...")
-        if not self._ensure_wechat_ready():
-            log.error("微信窗口未就绪！")
-            raise RuntimeError("微信窗口未就绪，无法执行广播")
-        log.info("微信窗口已就绪")
+        # 3. 确保微信独立窗口就绪
+        log.info("检查微信独立窗口状态...")
+        if not self._ensure_wechat_ready(groups):
+            log.error("微信独立窗口未就绪！")
+            raise RuntimeError("微信独立窗口未就绪，请先打开目标群的独立聊天窗口")
+        log.info("微信独立窗口检查完成")
         
         # 4. 执行广播
         stats = {"sent": 0, "skipped": 0, "failed": 0}
