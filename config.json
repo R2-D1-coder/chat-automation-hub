@@ -1,0 +1,26 @@
+{
+  "wechat": {
+    "exe_path": "C:\\Program Files (x86)\\Tencent\\WeChat\\WeChat.exe",
+    "window_title_regex": "微信",
+    "per_message_delay_sec": 2.0,
+    "max_per_minute": 10,
+    "screenshot_on_error": true
+  },
+  "safety": {
+    "armed": false,
+    "dry_run": true,
+    "confirm": false
+  },
+  "allowed_groups": [
+    "个人群",
+    "测试群",
+    "家人群"
+  ],
+  "broadcast": {
+    "groups": [
+      "个人群"
+    ],
+    "text": "【自动通知】当前时间: {ts}\n这是一条测试消息。"
+  }
+}
+

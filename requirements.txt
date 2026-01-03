@@ -1,0 +1,5 @@
+robocorp-tasks>=3.0.0
+rpaframework>=28.0.0
+requests>=2.31.0
+pyperclip>=1.8.2
+

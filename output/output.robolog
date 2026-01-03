@@ -1,0 +1,673 @@
+V 0.0.4
+T 2026-01-03T02:13:16.865+00:00
+ID 1|c4181265-e849-11f0-962d-cc5ef8d05322
+I "sys.platform=win32"
+I "python=3.13.9 (tags/v3.13.9:8183fa5, Oct 14 2025, 14:09:13) [MSC v.1944 64 bit (AMD64)]"
+M a:"tasks.py - wechat_broadcast"
+SR a|0.007
+M c:"Collect tasks"
+M d:"setup"
+M e:""
+P b:c|d|e|e|0
+ST b|0.007
+M f:"regular"
+M g:"\nCollecting task wechat_broadcast from: tasks.py\n"
+C f|g|0.007
+M i:"Logger.__init__"
+M j:"src.core.log"
+M k:"C:\\Users\\Administrator\\Documents\\GitHub\\chat-automation-hub\\src\\core\\log.py"
+P h:i|j|k|e|8
+M l:"METHOD"
+SE h|l|0.042
+M m:"name"
+M n:"str"
+M o:"'wechat'"
+EA m|n|o
+M p:"PASS"
+EE l|p|0.042
+SE h|l|0.049
+M q:"'wechat_adapter'"
+EA m|n|q
+EE l|p|0.049
+M s:"retry"
+M t:"src.core.retry"
+M u:"C:\\Users\\Administrator\\Documents\\GitHub\\chat-automation-hub\\src\\core\\retry.py"
+P r:s|t|u|e|10
+SE r|l|0.049
+M v:"max_attempts"
+M w:"int"
+M x:"3"
+EA v|w|x
+M y:"base_delay"
+M z:"float"
+M A:"1.0"
+EA y|z|A
+M B:"max_delay"
+M C:"30.0"
+EA B|z|C
+M D:"exponential_base"
+M E:"2.0"
+EA D|z|E
+M F:"jitter"
+M G:"0.3"
+EA F|z|G
+M H:"exceptions"
+M I:"tuple"
+M J:"(<class 'Exception'>,)"
+EA H|I|J
+P K:s|t|u|e|56
+M L:"function"
+M M:"<function retry.<locals>.decorator at 0x000001B46169EC00>"
+R K|L|M|0.049
+EE l|p|0.049
+M O:"decorator"
+P N:O|t|u|e|29
+SE N|l|0.049
+M P:"func"
+M Q:"<function WeChatBroadcaster._send_to_group at 0x000001B46169ECA0>"
+EA P|L|Q
+P R:O|t|u|e|55
+M S:"<function WeChatBroadcaster._send_to_group at 0x000001B46169ED40>"
+R R|L|S|0.049
+EE l|p|0.049
+ET p|e|0.049
+M U:"wechat_broadcast"
+M V:"tasks"
+M W:"C:\\Users\\Administrator\\Documents\\GitHub\\chat-automation-hub\\tasks.py"
+M X:"\u4e3b\u4efb\u52a1\uff1a\u5fae\u4fe1\u7fa4\u53d1\u5e7f\u64ad"
+P T:U|V|W|X|21
+ST T|0.049
+M Y:"========================== "
+C f|Y|0.049
+M Z:"Running: "
+C f|Z|0.049
+M 0:"task_name"
+C 0|U|0.049
+M 1:" ===========================\n"
+C f|1|0.05
+SE T|l|0.05
+M 4:"load_config"
+M 5:"src.core.config"
+M 6:"C:\\Users\\Administrator\\Documents\\GitHub\\chat-automation-hub\\src\\core\\config.py"
+P 2:4|5|6|e|8
+SE 2|l|0.05
+M 7:"config_path"
+M 8:"WindowsPath"
+M 9:"WindowsPath('C:/Users/Administrator/Documents/GitHub/chat-automation-hub/config.json')"
+EA 7|8|9
+P aa:4|5|6|e|14
+M ab:"dict"
+M ac:"{'wechat': {'exe_path': 'C:\\\\Program Files (x86)\\\\Tencent\\\\WeChat\\\\WeChat.exe', 'window_title_regex': '\u5fae\u4fe1', 'per_message_delay_sec': 2.0, 'max_per_minute': 10, 'screenshot_on_error': True}, 'safety': {'armed': False, 'dry_run': True, 'confirm': False}, 'allowed_groups': ['\u6d4b\u8bd5\u7fa41', '\u6d4b\u8bd5\u7fa42', '\u5bb6\u4eba\u7fa4'], 'broadcast': {'groups': ['\u6d4b\u8bd5\u7fa41'], 'text': '\u3010\u81ea\u52a8\u901a\u77e5\u3011\u5f53\u524d\u65f6\u95f4: {ts}\\n\u8fd9\u662f\u4e00\u6761\u6d4b\u8bd5\u6d88\u606f\u3002'}}"
+R aa|ab|ac|0.051
+EE l|p|0.051
+P ad:U|V|W|e|23
+M ae:"config"
+AS ad|ae|ab|ac|0.051
+P af:U|V|W|e|26
+M ag:"broadcast_cfg"
+M ah:"{'groups': ['\u6d4b\u8bd5\u7fa41'], 'text': '\u3010\u81ea\u52a8\u901a\u77e5\u3011\u5f53\u524d\u65f6\u95f4: {ts}\\n\u8fd9\u662f\u4e00\u6761\u6d4b\u8bd5\u6d88\u606f\u3002'}"
+AS af|ag|ab|ah|0.051
+P ai:U|V|W|e|27
+M aj:"groups"
+M ak:"list"
+M al:"['\u6d4b\u8bd5\u7fa41']"
+AS ai|aj|ak|al|0.051
+P am:U|V|W|e|28
+M an:"text_template"
+M ao:"'\u3010\u81ea\u52a8\u901a\u77e5\u3011\u5f53\u524d\u65f6\u95f4: {ts}\\n\u8fd9\u662f\u4e00\u6761\u6d4b\u8bd5\u6d88\u606f\u3002'"
+AS am|an|n|ao|0.051
+P ap:U|V|W|e|31
+M aq:"ts"
+M ar:"'2026-01-03 10:13:16'"
+AS ap|aq|n|ar|0.051
+P as:U|V|W|e|32
+M at:"rendered_text"
+M au:"'\u3010\u81ea\u52a8\u901a\u77e5\u3011\u5f53\u524d\u65f6\u95f4: 2026-01-03 10:13:16\\n\u8fd9\u662f\u4e00\u6761\u6d4b\u8bd5\u6d88\u606f\u3002'"
+AS as|at|n|au|0.051
+P av:U|V|W|e|35
+M aw:"safety"
+M ax:"{'armed': False, 'dry_run': True, 'confirm': False}"
+AS av|aw|ab|ax|0.051
+P ay:U|V|W|e|36
+M az:"armed"
+M aA:"bool"
+M aB:"False"
+AS ay|az|aA|aB|0.051
+P aC:U|V|W|e|37
+M aD:"dry_run"
+M aE:"True"
+AS aC|aD|aA|aE|0.051
+M aF:"stdout"
+M aG:"============================================================"
+C aF|aG|0.051
+M aH:"\n"
+C aF|aH|0.051
+M aI:"[wechat_broadcast] \u914d\u7f6e\u52a0\u8f7d\u5b8c\u6210"
+C aF|aI|0.051
+C aF|aH|0.051
+C aF|aG|0.051
+C aF|aH|0.051
+M aJ:"[\u5b89\u5168] armed=False, dry_run=True"
+C aF|aJ|0.051
+C aF|aH|0.051
+M aK:"[\u76ee\u6807\u7fa4\u7ec4] ['\u6d4b\u8bd5\u7fa41']"
+C aF|aK|0.051
+C aF|aH|0.051
+M aL:"[\u6d88\u606f\u5185\u5bb9] (41 \u5b57\u7b26)"
+C aF|aL|0.052
+C aF|aH|0.052
+M aM:"----------------------------------------"
+C aF|aM|0.052
+C aF|aH|0.052
+M aN:"\u3010\u81ea\u52a8\u901a\u77e5\u3011\u5f53\u524d\u65f6\u95f4: 2026-01-03 10:13:16\n\u8fd9\u662f\u4e00\u6761\u6d4b\u8bd5\u6d88\u606f\u3002"
+C aF|aN|0.052
+C aF|aH|0.052
+C aF|aM|0.052
+C aF|aH|0.052
+M aP:"WeChatBroadcaster.__init__"
+M aQ:"src.adapters.wechat_desktop"
+M aR:"C:\\Users\\Administrator\\Documents\\GitHub\\chat-automation-hub\\src\\adapters\\wechat_desktop.py"
+P aO:aP|aQ|aR|e|40
+SE aO|l|0.052
+EA ae|ab|ac
+P aS:aP|aQ|aR|e|51
+M aT:"wechat_cfg"
+M aU:"{'exe_path': 'C:\\\\Program Files (x86)\\\\Tencent\\\\WeChat\\\\WeChat.exe', 'window_title_regex': '\u5fae\u4fe1', 'per_message_delay_sec': 2.0, 'max_per_minute': 10, 'screenshot_on_error': True}"
+AS aS|aT|ab|aU|0.052
+P aV:aP|aQ|aR|e|59
+M aW:"safety_cfg"
+AS aV|aW|ab|ax|0.052
+M aY:"reset_rate_limiter"
+M aZ:"src.core.ratelimit"
+M a0:"C:\\Users\\Administrator\\Documents\\GitHub\\chat-automation-hub\\src\\core\\ratelimit.py"
+P aX:aY|aZ|a0|e|74
+SE aX|l|0.052
+M a1:"max_per_minute"
+M a2:"10"
+EA a1|w|a2
+M a4:"RateLimiter.__init__"
+P a3:a4|aZ|a0|e|12
+SE a3|l|0.052
+EA a1|w|a2
+EE l|p|0.052
+P a5:aY|aZ|a0|e|77
+M a6:"_rate_limiter"
+M a7:"RateLimiter"
+M a8:"<src.core.ratelimit.RateLimiter object at 0x000001B46163C1A0>"
+AS a5|a6|a7|a8|0.052
+EE l|p|0.052
+M ba:"Logger.info"
+P a9:ba|j|k|e|18
+SE a9|l|0.052
+M bb:"msg"
+M bc:"'WeChatBroadcaster \u521d\u59cb\u5316\u5b8c\u6210'"
+EA bb|n|bc
+M bd:"ctx"
+M be:"{'armed': False, 'dry_run': True, 'allowed_groups': 3}"
+EA bd|ab|be
+M bf:"[10:13:16][wechat_adapter][INFO] WeChatBroadcaster \u521d\u59cb\u5316\u5b8c\u6210 | armed=False dry_run=True allowed_groups=3"
+C aF|bf|0.052
+C aF|aH|0.052
+EE l|p|0.052
+EE l|p|0.052
+P bg:U|V|W|e|52
+M bh:"broadcaster"
+M bi:"WeChatBroadcaster"
+M bj:"<src.adapters.wechat_desktop.WeChatBroadcaster object at 0x000001B46155B620>"
+AS bg|bh|bi|bj|0.052
+M bl:"WeChatBroadcaster.broadcast"
+P bk:bl|aQ|aR|e|310
+SE bk|l|0.053
+EA aj|ak|al
+M bm:"text"
+EA bm|n|au
+SE a9|l|0.053
+M bn:"'=================================================='"
+EA bb|n|bn
+M bo:"{}"
+EA bd|ab|bo
+M bp:"[10:13:16][wechat_adapter][INFO] =================================================="
+C aF|bp|0.053
+C aF|aH|0.053
+EE l|p|0.053
+SE a9|l|0.053
+M bq:"'\u5f00\u59cb\u5e7f\u64ad\u4efb\u52a1'"
+EA bb|n|bq
+M br:"{'groups': 1, 'text_len': 41, 'armed': False, 'dry_run': True}"
+EA bd|ab|br
+M bs:"[10:13:16][wechat_adapter][INFO] \u5f00\u59cb\u5e7f\u64ad\u4efb\u52a1 | groups=1 text_len=41 armed=False dry_run=True"
+C aF|bs|0.053
+C aF|aH|0.053
+EE l|p|0.053
+SE a9|l|0.053
+M bt:"'\u767d\u540d\u5355\u6821\u9a8c\u901a\u8fc7'"
+EA bb|n|bt
+EA bd|ab|bo
+M bu:"[10:13:16][wechat_adapter][INFO] \u767d\u540d\u5355\u6821\u9a8c\u901a\u8fc7"
+C aF|bu|0.053
+C aF|aH|0.053
+EE l|p|0.053
+SE a9|l|0.053
+M bv:"'[DRY_RUN] \u8df3\u8fc7\u5fae\u4fe1\u7a97\u53e3\u68c0\u67e5'"
+EA bb|n|bv
+EA bd|ab|bo
+M bw:"[10:13:16][wechat_adapter][INFO] [DRY_RUN] \u8df3\u8fc7\u5fae\u4fe1\u7a97\u53e3\u68c0\u67e5"
+C aF|bw|0.053
+C aF|aH|0.053
+EE l|p|0.054
+P bx:bl|aQ|aR|e|344
+M by:"stats"
+M bz:"{'sent': 0, 'skipped': 0, 'failed': 0}"
+AS bx|by|ab|bz|0.054
+M bB:"get_rate_limiter"
+P bA:bB|aZ|a0|e|66
+SE bA|l|0.054
+EA a1|w|a2
+P bC:bB|aZ|a0|e|71
+R bC|a7|a8|0.054
+EE l|p|0.054
+P bD:bl|aQ|aR|e|345
+M bE:"rate_limiter"
+AS bD|bE|a7|a8|0.054
+M bG:"for (i, group) in enumerate(groups, 1)"
+P bF:bG|aQ|aR|e|347
+M bH:"FOR"
+SE bF|bH|0.054
+M bJ:"Step: for (i, group) in enumerate(groups, 1)"
+P bI:bJ|aQ|aR|e|347
+M bK:"FOR_STEP"
+SE bI|bK|0.054
+M bL:"i"
+M bM:"1"
+EA bL|w|bM
+M bN:"group"
+M bO:"'\u6d4b\u8bd5\u7fa41'"
+EA bN|n|bO
+SE a9|l|0.054
+M bP:"'\u5904\u7406\u7fa4 1/1'"
+EA bb|n|bP
+M bQ:"{'group': '\u6d4b\u8bd5\u7fa41'}"
+EA bd|ab|bQ
+M bR:"[10:13:16][wechat_adapter][INFO] \u5904\u7406\u7fa4 1/1 | group=\u6d4b\u8bd5\u7fa41"
+C aF|bR|0.054
+C aF|aH|0.054
+EE l|p|0.054
+M bT:"should_send"
+M bU:"src.core.dedupe"
+M bV:"C:\\Users\\Administrator\\Documents\\GitHub\\chat-automation-hub\\src\\core\\dedupe.py"
+P bS:bT|bU|bV|e|19
+SE bS|l|0.054
+EA bN|n|bO
+EA bm|n|au
+M bX:"compute_key"
+P bW:bX|bU|bV|e|8
+SE bW|l|0.054
+EA bN|n|bO
+EA bm|n|au
+P bY:bX|bU|bV|e|14
+M bZ:"content"
+M b0:"'\u6d4b\u8bd5\u7fa41\\n\u3010\u81ea\u52a8\u901a\u77e5\u3011\u5f53\u524d\u65f6\u95f4: 2026-01-03 10:13:16\\n\u8fd9\u662f\u4e00\u6761\u6d4b\u8bd5\u6d88\u606f\u3002'"
+AS bY|bZ|n|b0|0.054
+P b1:bX|bU|bV|e|15
+M b2:"full_hash"
+M b3:"'e57f57c4083588f4f8100caa01315d463aba295d495e5b57bdb6e38879c494c6'"
+AS b1|b2|n|b3|0.054
+P b4:bX|bU|bV|e|16
+M b5:"'e57f57c4083588f4'"
+R b4|n|b5|0.054
+EE l|p|0.054
+P b6:bT|bU|bV|e|26
+M b7:"key"
+AS b6|b7|n|b5|0.054
+M b9:"get_store"
+M ca:"src.core.storage"
+M cb:"C:\\Users\\Administrator\\Documents\\GitHub\\chat-automation-hub\\src\\core\\storage.py"
+P b8:b9|ca|cb|e|98
+SE b8|l|0.054
+M cd:"if _store is None"
+P cc:cd|ca|cb|e|101
+M ce:"IF_SCOPE"
+SE cc|ce|0.054
+M cf:"_store"
+M cg:"NoneType"
+M ch:"None"
+EA cf|cg|ch
+M cj:"SQLiteStore.__init__"
+P ci:cj|ca|cb|e|15
+SE ci|l|0.054
+M ck:"db_path"
+EA ck|cg|ch
+M cm:"if db_path is None"
+P cl:cm|ca|cb|e|20
+SE cl|ce|0.054
+EA ck|cg|ch
+P cn:cj|ca|cb|e|22
+M co:"WindowsPath('C:/Users/Administrator/Documents/GitHub/chat-automation-hub/output/state.db')"
+AS cn|ck|8|co|0.054
+EE ce|p|0.054
+M cq:"Logger.debug"
+P cp:cq|j|k|e|27
+SE cp|l|0.055
+M cr:"'\u6570\u636e\u5e93\u521d\u59cb\u5316\u5b8c\u6210'"
+EA bb|n|cr
+M cs:"{'path': 'C:\\\\Users\\\\Administrator\\\\Documents\\\\GitHub\\\\chat-automation-hub\\\\output\\\\state.db'}"
+EA bd|ab|cs
+M ct:"[10:13:16][wechat][DEBUG] \u6570\u636e\u5e93\u521d\u59cb\u5316\u5b8c\u6210 | path=C:\\Users\\Administrator\\Documents\\GitHub\\chat-automation-hub\\output\\state.db"
+C aF|ct|0.055
+C aF|aH|0.055
+EE l|p|0.055
+EE l|p|0.055
+P cu:b9|ca|cb|e|102
+M cv:"SQLiteStore"
+M cw:"<src.core.storage.SQLiteStore object at 0x000001B46163C2F0>"
+AS cu|cf|cv|cw|0.055
+EE ce|p|0.055
+P cx:b9|ca|cb|e|103
+R cx|cv|cw|0.055
+EE l|p|0.055
+P cy:bT|bU|bV|e|27
+M cz:"store"
+AS cy|cz|cv|cw|0.055
+M cB:"SQLiteStore.has_key"
+P cA:cB|ca|cb|e|52
+SE cA|l|0.055
+EA b7|n|b5
+P cC:cB|ca|cb|e|54
+M cD:"conn"
+M cE:"Connection"
+M cF:"<sqlite3.Connection object at 0x000001B461592F20>"
+AS cC|cD|cE|cF|0.055
+P cG:cB|ca|cb|e|55
+M cH:"cursor"
+M cI:"Cursor"
+M cJ:"<sqlite3.Cursor object at 0x000001B4615058C0>"
+AS cG|cH|cI|cJ|0.056
+P cK:cB|ca|cb|e|56
+R cK|aA|aB|0.056
+EE l|p|0.056
+P cL:bT|bU|bV|e|32
+R cL|aA|aE|0.056
+EE l|p|0.056
+M cN:"RateLimiter.acquire"
+P cM:cN|aZ|a0|e|28
+SE cM|l|0.056
+P cO:cN|aZ|a0|e|36
+M cP:"now"
+M cQ:"1767406396.9213102"
+AS cO|cP|z|cQ|0.056
+P cR:cN|aZ|a0|e|39
+M cS:"waited"
+M cT:"0.0"
+AS cR|cS|z|cT|0.056
+M cV:"while len(self.timestamps) >= self.max_per_minute"
+P cU:cV|aZ|a0|e|42
+M cW:"WHILE"
+SE cU|cW|0.056
+EE cW|p|0.056
+P cX:cN|aZ|a0|e|53
+R cX|z|cT|0.056
+EE l|p|0.056
+P cY:bl|aQ|aR|e|356
+AS cY|cS|z|cT|0.056
+M c0:"wrapper"
+P cZ:c0|t|u|e|31
+SE cZ|l|0.056
+M c1:"args"
+M c2:"(<src.adapters.wechat_desktop.WeChatBroadcaster object at 0x000001B46155B620>, '\u6d4b\u8bd5\u7fa41', '\u3010\u81ea\u52a8\u901a\u77e5\u3011\u5f53\u524d\u65f6\u95f4: 2026-01-03 10:13:16\\n\u8fd9\u662f\u4e00\u6761\u6d4b\u8bd5\u6d88\u606f\u3002')"
+EA c1|I|c2
+M c3:"kwargs"
+EA c3|ab|bo
+P c4:c0|t|u|e|32
+M c5:"last_exception"
+AS c4|c5|cg|ch|0.056
+M c7:"for attempt in range(1, max_attempts + 1)"
+P c6:c7|t|u|e|33
+SE c6|bH|0.056
+M c9:"Step: for attempt in range(1, max_attempts + 1)"
+P c8:c9|t|u|e|33
+SE c8|bK|0.056
+M da:"attempt"
+EA da|w|bM
+SE a9|l|0.056
+M db:"'[DRY_RUN] \u5c06\u53d1\u9001\u5230\u7fa4'"
+EA bb|n|db
+M dc:"{'group': '\u6d4b\u8bd5\u7fa41', 'text_len': 41, 'text_preview': '\u3010\u81ea\u52a8\u901a\u77e5\u3011\u5f53\u524d\u65f6\u95f4: 2026-01-03 10:13:16\\n\u8fd9\u662f\u4e00\u6761\u6d4b\u8bd5\u6d88\u606f\u3002'}"
+EA bd|ab|dc
+M dd:"[10:13:16][wechat_adapter][INFO] [DRY_RUN] \u5c06\u53d1\u9001\u5230\u7fa4 | group=\u6d4b\u8bd5\u7fa41 text_len=41 text_preview=\u3010\u81ea\u52a8\u901a\u77e5\u3011\u5f53\u524d\u65f6\u95f4: 2026-01-03 10:13:16\n\u8fd9\u662f\u4e00\u6761\u6d4b\u8bd5\u6d88\u606f\u3002"
+C aF|dd|0.056
+C aF|aH|0.056
+EE l|p|0.056
+P de:c0|t|u|e|35
+R de|cg|ch|0.056
+EE bK|p|0.056
+EE bH|p|0.056
+EE l|p|0.056
+M dg:"mark_sent"
+P df:dg|bU|bV|e|35
+SE df|l|0.056
+EA bN|n|bO
+EA bm|n|au
+SE bW|l|0.056
+EA bN|n|bO
+EA bm|n|au
+AS bY|bZ|n|b0|0.056
+AS b1|b2|n|b3|0.056
+R b4|n|b5|0.056
+EE l|p|0.056
+P dh:dg|bU|bV|e|37
+AS dh|b7|n|b5|0.056
+SE b8|l|0.056
+R cx|cv|cw|0.056
+EE l|p|0.056
+P di:dg|bU|bV|e|38
+AS di|cz|cv|cw|0.056
+M dk:"SQLiteStore.set_key"
+P dj:dk|ca|cb|e|58
+SE dj|l|0.056
+EA b7|n|b5
+P dl:dk|ca|cb|e|65
+M dm:"'2026-01-03T10:13:16.922062'"
+AS dl|aq|n|dm|0.057
+P dn:dk|ca|cb|e|67
+AS dn|cD|cE|cF|0.057
+P do:dk|ca|cb|e|70
+R do|aA|aE|0.064
+EE l|p|0.064
+M dq:"if store.set_key(key)"
+P dp:dq|bU|bV|e|40
+SE dp|ce|0.064
+EA b7|n|b5
+SE cp|l|0.064
+M dr:"'\u6807\u8bb0\u5df2\u53d1\u9001'"
+EA bb|n|dr
+M ds:"{'group': '\u6d4b\u8bd5\u7fa41', 'key': 'e57f57c4083588f4'}"
+EA bd|ab|ds
+M dt:"[10:13:16][wechat][DEBUG] \u6807\u8bb0\u5df2\u53d1\u9001 | group=\u6d4b\u8bd5\u7fa41 key=e57f57c4083588f4"
+C aF|dt|0.064
+C aF|aH|0.064
+EE l|p|0.064
+EE ce|p|0.064
+EE l|p|0.064
+EE bK|p|0.064
+EE bH|p|0.064
+SE a9|l|0.064
+M du:"'\u5e7f\u64ad\u4efb\u52a1\u5b8c\u6210'"
+EA bb|n|du
+M dv:"{'sent': 1, 'skipped': 0, 'failed': 0}"
+EA bd|ab|dv
+M dw:"[10:13:16][wechat_adapter][INFO] \u5e7f\u64ad\u4efb\u52a1\u5b8c\u6210 | sent=1 skipped=0 failed=0"
+C aF|dw|0.064
+C aF|aH|0.064
+EE l|p|0.064
+SE a9|l|0.064
+EA bb|n|bn
+EA bd|ab|bo
+C aF|bp|0.064
+C aF|aH|0.064
+EE l|p|0.064
+P dx:bl|aQ|aR|e|383
+R dx|ab|dv|0.064
+EE l|p|0.064
+P dy:U|V|W|e|53
+AS dy|by|ab|dv|0.064
+M dz:"\n[\u7ed3\u679c\u7edf\u8ba1]"
+C aF|dz|0.064
+C aF|aH|0.064
+M dA:"  \u53d1\u9001\u6210\u529f: 1"
+C aF|dA|0.065
+C aF|aH|0.065
+M dB:"  \u8df3\u8fc7(\u53bb\u91cd): 0"
+C aF|dB|0.065
+C aF|aH|0.065
+M dC:"  \u53d1\u9001\u5931\u8d25: 0"
+C aF|dC|0.065
+C aF|aH|0.065
+EE l|p|0.065
+C 0|U|0.065
+M dD:" status: "
+C f|dD|0.065
+M dE:"PASS\n"
+C f|dE|0.065
+M dF:"================================================================================\n"
+C f|dF|0.065
+ET p|e|0.065
+M dH:"Teardown tasks"
+M dI:"teardown"
+P dG:dH|dI|e|e|0
+ST dG|0.066
+M dJ:"Process snapshot"
+SPS dJ|0.066
+M dK:"System information:\nMemory: Total: 55.2 G, Available: 31.5 G, Used: 42.9 %\nCPUs: 32"
+P dL:e|e|e|e|0
+L I|dK|dL|0|0.107
+M dM:"Current Process: python3.13.exe (pid: 41184, status: running)\nCommand Line: C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe -m robocorp.tasks run tasks.py -t wechat_broadcast\nStarted: 10:13:16\nParent pid: 83160\nResident Set Size: 46.6 M\nVirtual Memory Size: 26.9 M"
+L I|dM|dL|0|0.146
+M dN:"MainThread|Thread ID: 106568 (non daemon)"
+STD dN|0.146
+M dO:"C:\\Users\\Administrator\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\robocorp\\log\\__init__.py"
+M dP:"process_snapshot"
+M dQ:"robo_logger.process_snapshot()"
+TBE dO|268|dP|dQ
+M dR:"logger_instances"
+M dS:"{<robocorp.log._robo_logger._RoboLogger object at 0x000001B4615596A0>: 1}"
+TBV dR|ab|dS
+M dT:"robo_logger"
+M dU:"_RoboLogger"
+M dV:"<robocorp.log._robo_logger._RoboLogger object at 0x000001B4615596A0>"
+TBV dT|dU|dV
+M dW:"C:\\Users\\Administrator\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\robocorp\\log\\_robo_logger.py"
+M dX:"new_func"
+M dY:"return func(self, *args, **kwargs)"
+TBE dW|20|dX|dY
+M dZ:"self"
+TBV dZ|dU|dV
+M d0:"()"
+TBV c1|I|d0
+TBV c3|ab|bo
+M d1:"<function _RoboLogger.process_snapshot at 0x000001B46156F560>"
+TBV P|L|d1
+M d2:"return self._robot_output_impl.process_snapshot(hide_vars)"
+TBE dW|416|dP|d2
+TBV dZ|dU|dV
+M d3:"hide_vars"
+TBV d3|aA|aB
+M d4:"C:\\Users\\Administrator\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\robocorp\\log\\_robo_output_impl.py"
+M d5:"self._dump_threads(hide_vars)"
+TBE d4|747|dP|d5
+M d6:"_RoboOutputImpl"
+M d7:"<robocorp.log._robo_output_impl._RoboOutputImpl object at 0x000001B46155A900>"
+TBV dZ|d6|d7
+TBV d3|aA|aB
+M d8:"log"
+M d9:"module"
+M ea:"<module 'robocorp.log' from 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\robocorp\\\\log\\\\__init__.py'>"
+TBV d8|d9|ea
+M eb:"entry_id"
+M ec:"'ps_0'"
+TBV eb|n|ec
+M ed:"entry_type"
+M ee:"'process_snapshot'"
+TBV ed|n|ee
+M ef:"psutil"
+M eg:"<module 'psutil' from 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\psutil\\\\__init__.py'>"
+TBV ef|d9|eg
+M eh:"AccessDenied"
+M ei:"type"
+M ej:"<class 'psutil.AccessDenied'>"
+TBV eh|ei|ej
+M ek:"NoSuchProcess"
+M el:"<class 'psutil.NoSuchProcess'>"
+TBV ek|ei|el
+M em:"ZombieProcess"
+M en:"<class 'psutil.ZombieProcess'>"
+TBV em|ei|en
+M eo:"curr_process"
+M ep:"Process"
+M eq:"psutil.Process(pid=41184, name='python3.13.exe', status='running', started='10:13:16')"
+TBV eo|ep|eq
+M er:"log_info"
+M es:"<function _RoboOutputImpl.process_snapshot.<locals>.log_info at 0x000001B461646020>"
+TBV er|L|es
+M et:"memory_info"
+M eu:"'Total: 55.2 G, Available: 31.5 G, Used: 42.9 %'"
+TBV et|n|eu
+M ev:"child_i"
+M ew:"0"
+TBV ev|w|ew
+M ex:"child"
+TBV ex|ep|eq
+M ey:"'python3.13.exe'"
+TBV m|n|ey
+M ez:"status"
+M eA:"'running'"
+TBV ez|n|eA
+M eB:"create_time"
+M eC:"'10:13:16'"
+TBV eB|n|eC
+M eD:"ppid"
+M eE:"'83160'"
+TBV eD|n|eE
+M eF:"cmdline"
+M eG:"'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\python.exe -m robocorp.tasks run tasks.py -t wechat_broadcast'"
+TBV eF|n|eG
+M eH:"rss"
+M eI:"'46.6 M'"
+TBV eH|n|eI
+M eJ:"vms"
+M eK:"'26.9 M'"
+TBV eJ|n|eK
+M eL:"proc_memory_info"
+M eM:"pmem"
+M eN:"pmem(rss=48812032, vms=28180480, num_page_faults=13979, peak_wset=50077696, wset=48812032, peak_paged_pool=227304, paged_pool=226976, peak_nonpaged_pool=31488, nonpaged_pool=19984, pagefile=28180480, peak_pagefile=29294592, private=28180480)"
+TBV eL|eM|eN
+M eO:"message"
+M eP:"'Current Process: python3.13.exe (pid: 41184, status: running)\\nCommand Line: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\python.exe -m robocorp.tasks run tasks.py -t wechat_broadcast\\nStarted: 10:13:16\\nParent pid: 83160\\nResident Set Size: 46.6 M\\nVirtual Memory Size: 26.9 M'"
+TBV eO|n|eP
+M eQ:"_dump_threads"
+M eR:"stack.append((f, f.f_lineno))"
+TBE d4|768|eQ|eR
+TBV dZ|d6|d7
+TBV d3|aA|aB
+M eS:"thread_id"
+M eT:"106568"
+TBV eS|w|eT
+M eU:"frame"
+M eV:"<frame at 0x000001B461638B80, file 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\robocorp\\\\log\\\\_robo_output_impl.py', line 772, code _dump_threads>"
+TBV eU|eU|eV
+M eW:"thread"
+M eX:"_MainThread"
+M eY:"<_MainThread(MainThread, started 106568)>"
+TBV eW|eX|eY
+M eZ:"title"
+M e0:"'MainThread|Thread ID: 106568 (non daemon)'"
+TBV eZ|n|e0
+M e1:"f"
+M e2:"<frame at 0x000001B45EDF7060, file 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\robocorp\\\\tasks\\\\_commands.py', line 494, code run>"
+TBV e1|eU|e2
+M e3:"stack"
+M e4:"[(<frame at 0x000001B46157EEA0, file 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\robocorp\\\\log\\\\__init__.py', line 268, code process_snapshot>, 268), (<frame at 0x000001B4615932E0, file 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\robocorp\\\\log\\\\_robo_logger.py', line 20, code new_func>, 20), (<frame at 0x000001B46154B510, file 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\robocorp\\\\log\\\\_robo_logger.py', line 416, code process_snapshot>, 416), (<frame at 0x000001B46171A320, file 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\robocorp\\\\log\\\\_robo_output_impl.py', line 747, code process_snapshot>, 747), (<frame at 0x000001B461638B80, file 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\robocorp\\\\log\\\\_robo_output_impl.py', line 772, code _dump_threads>, 768)]"
+TBV e3|ak|e4
+ETD 0.17
+EPS 0.17
+ET p|e|0.17
+ER p|0.17
