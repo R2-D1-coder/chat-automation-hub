@@ -4,6 +4,7 @@
     "window_title_regex": "微信",
     "per_message_delay_sec": 2.0,
     "max_per_minute": 10,
+    "min_send_interval_sec": 10,
     "screenshot_on_error": true
   },
   "safety": {
@@ -14,7 +15,7 @@
   "allowed_groups": [
     "个人群",
     "测试群",
-    "家人群"
+    "家人们"
   ],
   "broadcast": {
     "groups": [

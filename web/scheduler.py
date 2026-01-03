@@ -79,54 +79,85 @@ def execute_task(task_id: int):
         log.info("=" * 50)
 
 
-def parse_cron_expression(expr: str) -> dict:
+def parse_cron_expression(expr: str) -> tuple:
     """
-    解析 Cron 表达式
+    解析调度表达式
     
     支持的格式：
+    - 间隔格式：
+      - "every 5m" -> 每 5 分钟
+      - "every 1h" -> 每 1 小时
+      - "every 30s" -> 每 30 秒
     - 标准 5 段：分 时 日 月 周 (如 "0 20 * * *" 表示每天 20:00)
     - 简化格式：
       - "daily 20:00" -> 每天 20:00
       - "weekly 6 12:00" -> 每周六 12:00 (周日=0, 周一=1, ..., 周六=6)
       - "monthly 1 09:00" -> 每月 1 日 09:00
+    
+    Returns:
+        tuple: (trigger_type, trigger_args)
+        - trigger_type: "cron" 或 "interval"
+        - trigger_args: 传给触发器的参数字典
     """
     expr = expr.strip().lower()
+    
+    # 间隔格式解析 (every Nm/Nh/Ns)
+    if expr.startswith("every "):
+        interval_part = expr[6:].strip()
+        
+        if interval_part.endswith("m"):
+            minutes = int(interval_part[:-1])
+            return ("interval", {"minutes": minutes})
+        elif interval_part.endswith("h"):
+            hours = int(interval_part[:-1])
+            return ("interval", {"hours": hours})
+        elif interval_part.endswith("s"):
+            seconds = int(interval_part[:-1])
+            return ("interval", {"seconds": seconds})
+        else:
+            raise ValueError(f"无效的间隔格式: {expr}，支持 s/m/h 后缀")
     
     # 简化格式解析
     if expr.startswith("daily "):
         time_part = expr[6:]
         hour, minute = time_part.split(":")
-        return {"hour": int(hour), "minute": int(minute)}
+        return ("cron", {"hour": int(hour), "minute": int(minute)})
     
     elif expr.startswith("weekly "):
         parts = expr[7:].split()
         day_of_week = int(parts[0])
         hour, minute = parts[1].split(":")
-        return {"day_of_week": day_of_week, "hour": int(hour), "minute": int(minute)}
+        return ("cron", {"day_of_week": day_of_week, "hour": int(hour), "minute": int(minute)})
     
     elif expr.startswith("monthly "):
         parts = expr[8:].split()
         day = int(parts[0])
         hour, minute = parts[1].split(":")
-        return {"day": day, "hour": int(hour), "minute": int(minute)}
+        return ("cron", {"day": day, "hour": int(hour), "minute": int(minute)})
     
     # 标准 Cron 格式 (5 段)
     else:
         parts = expr.split()
         if len(parts) == 5:
-            return {
+            return ("cron", {
                 "minute": parts[0],
                 "hour": parts[1],
                 "day": parts[2],
                 "month": parts[3],
                 "day_of_week": parts[4]
-            }
+            })
         else:
-            raise ValueError(f"无效的 Cron 表达式: {expr}")
+            raise ValueError(f"无效的调度表达式: {expr}")
 
 
-def add_job_for_task(task: ScheduledTask):
-    """为任务添加调度作业"""
+def add_job_for_task(task: ScheduledTask, run_immediately: bool = False):
+    """
+    为任务添加调度作业
+    
+    Args:
+        task: 任务对象
+        run_immediately: 是否立即执行一次（对于 interval 类型任务）
+    """
     global scheduler
     if not scheduler:
         return
@@ -144,8 +175,14 @@ def add_job_for_task(task: ScheduledTask):
         return
     
     try:
-        cron_args = parse_cron_expression(task.cron_expression)
-        trigger = CronTrigger(**cron_args)
+        trigger_type, trigger_args = parse_cron_expression(task.cron_expression)
+        
+        # 根据类型创建触发器
+        if trigger_type == "interval":
+            from apscheduler.triggers.interval import IntervalTrigger
+            trigger = IntervalTrigger(**trigger_args)
+        else:
+            trigger = CronTrigger(**trigger_args)
         
         scheduler.add_job(
             execute_task,
@@ -157,6 +194,12 @@ def add_job_for_task(task: ScheduledTask):
         )
         
         log.info("已添加调度作业", task_id=task.id, name=task.name, cron=task.cron_expression)
+        
+        # 对于 interval 类型，立即执行第一次
+        if run_immediately and trigger_type == "interval":
+            import threading
+            log.info("立即执行首次任务", task_id=task.id)
+            threading.Thread(target=execute_task, args=(task.id,), daemon=True).start()
         
     except Exception as e:
         log.error("添加调度作业失败", task_id=task.id, error=str(e))
@@ -242,9 +285,24 @@ def get_scheduler_status() -> dict:
         return {"running": False, "jobs": 0}
     
     jobs = scheduler.get_jobs()
+    
+    # 获取下次运行时间（兼容不同版本的 APScheduler）
+    next_run = None
+    try:
+        next_runs = []
+        for j in jobs:
+            # 尝试不同的属性名
+            nrt = getattr(j, 'next_run_time', None) or getattr(j, 'next_fire_time', None)
+            if nrt:
+                next_runs.append(nrt)
+        if next_runs:
+            next_run = min(next_runs)
+    except Exception:
+        pass
+    
     return {
         "running": scheduler.running,
         "jobs": len([j for j in jobs if j.id.startswith("task_")]),
-        "next_run": min([j.next_run_time for j in jobs if j.next_run_time], default=None)
+        "next_run": next_run
     }
 

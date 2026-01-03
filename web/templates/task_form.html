@@ -91,7 +91,9 @@
                                value="{{ task.cron_expression }}" 
                                placeholder="如：daily 20:00 或 weekly 6 12:00" required>
                         <div class="form-text">
-                            <strong>简化格式：</strong><br>
+                            <strong>间隔格式：</strong><br>
+                            <code>every 5m</code> - 每 5 分钟 | <code>every 1h</code> - 每 1 小时 | <code>every 30s</code> - 每 30 秒<br>
+                            <strong>定时格式：</strong><br>
                             <code>daily HH:MM</code> - 每天指定时间（如 <code>daily 20:00</code> 每天晚上8点）<br>
                             <code>weekly N HH:MM</code> - 每周指定日期（0=周日，6=周六，如 <code>weekly 6 12:00</code> 每周六中午）<br>
                             <code>monthly D HH:MM</code> - 每月指定日期（如 <code>monthly 1 09:00</code> 每月1日早上9点）<br>

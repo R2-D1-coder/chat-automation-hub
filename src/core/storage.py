@@ -40,10 +40,18 @@ class SQLiteStore:
     def _init_db(self):
         """初始化数据库表"""
         conn = self._get_conn()
+        # 旧表（基于内容去重，已废弃）
         conn.execute("""
             CREATE TABLE IF NOT EXISTS sent_log (
                 key TEXT PRIMARY KEY,
                 ts TEXT NOT NULL
+            )
+        """)
+        # 新表：基于群名+时间间隔去重
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS group_last_sent (
+                group_name TEXT PRIMARY KEY,
+                last_sent_time TEXT NOT NULL
             )
         """)
         conn.commit()
@@ -88,6 +96,53 @@ class SQLiteStore:
         """清空所有记录（慎用）"""
         conn = self._get_conn()
         conn.execute("DELETE FROM sent_log")
+        conn.commit()
+    
+    # ========== 基于时间间隔的去重 ==========
+    
+    def get_last_sent_time(self, group_name: str) -> Optional[str]:
+        """
+        获取群的最后发送时间
+        
+        Args:
+            group_name: 群名
+            
+        Returns:
+            ISO 格式时间字符串，或 None（从未发送）
+        """
+        conn = self._get_conn()
+        cursor = conn.execute(
+            "SELECT last_sent_time FROM group_last_sent WHERE group_name = ?",
+            (group_name,)
+        )
+        row = cursor.fetchone()
+        return row[0] if row else None
+    
+    def set_last_sent_time(self, group_name: str):
+        """
+        记录群的最后发送时间（当前时间）
+        
+        Args:
+            group_name: 群名
+        """
+        ts = datetime.now().isoformat()
+        conn = self._get_conn()
+        conn.execute("""
+            INSERT OR REPLACE INTO group_last_sent (group_name, last_sent_time)
+            VALUES (?, ?)
+        """, (group_name, ts))
+        conn.commit()
+    
+    def get_all_group_times(self) -> dict:
+        """获取所有群的最后发送时间"""
+        conn = self._get_conn()
+        cursor = conn.execute("SELECT group_name, last_sent_time FROM group_last_sent")
+        return {row[0]: row[1] for row in cursor.fetchall()}
+    
+    def clear_group_times(self):
+        """清空群发送时间记录"""
+        conn = self._get_conn()
+        conn.execute("DELETE FROM group_last_sent")
         conn.commit()
 
 

@@ -126,8 +126,8 @@ def self_test_core():
     store.close()
     test_db.unlink()
     
-    # ========== 测试 3: Dedupe 去重 ==========
-    print("\n[测试 3] Dedupe 去重逻辑")
+    # ========== 测试 3: Dedupe 去重（基于时间间隔） ==========
+    print("\n[测试 3] Dedupe 去重逻辑（基于时间间隔）")
     
     # 使用临时数据库
     test_db2 = Path("output/test_dedupe.db")
@@ -139,20 +139,21 @@ def self_test_core():
     storage_mod._store = SQLiteStore(test_db2)
     
     group = "测试群"
-    text = "Hello World"
     
-    key = compute_key(group, text)
-    print(f"  计算的 key: {key}")
+    # 首次应该发送
+    assert should_send(group, min_interval_sec=60), "首次应该发送"
+    mark_sent(group)
     
-    assert should_send(group, text), "首次应该发送"
-    mark_sent(group, text)
-    assert not should_send(group, text), "标记后不应再发送"
+    # 刚标记后，在间隔时间内不应发送
+    assert not should_send(group, min_interval_sec=60), "间隔内不应再发送"
     
-    # 不同群/不同文本应该可以发送
-    assert should_send("其他群", text), "不同群应该可以发送"
-    assert should_send(group, "其他文本"), "不同文本应该可以发送"
+    # 不同群应该可以发送
+    assert should_send("其他群", min_interval_sec=60), "不同群应该可以发送"
     
-    print("  ✓ Dedupe 测试通过")
+    # 同一群，间隔设为 0 秒，应该可以发送
+    assert should_send(group, min_interval_sec=0), "间隔设为 0 应该可以发送"
+    
+    print("  ✓ Dedupe 测试通过（基于时间间隔）")
     
     # 清理（先关闭连接）
     storage_mod._store.close()

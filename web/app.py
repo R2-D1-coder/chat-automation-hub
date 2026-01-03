@@ -92,7 +92,7 @@ def new_task():
         
         task_id = db.create_task(task)
         task.id = task_id
-        add_job_for_task(task)
+        add_job_for_task(task, run_immediately=True)  # 创建后立即执行一次
         
         flash(f"任务 '{task.name}' 创建成功", "success")
         return redirect(url_for("index"))
@@ -139,7 +139,7 @@ def edit_task(task_id: int):
             return render_template("task_form.html", task=task, allowed_groups=allowed_groups, is_new=False, status=status)
         
         db.update_task(task)
-        add_job_for_task(task)
+        add_job_for_task(task, run_immediately=True)  # 保存后立即执行一次
         
         flash(f"任务 '{task.name}' 更新成功", "success")
         return redirect(url_for("index"))
@@ -243,11 +243,22 @@ def format_datetime(value):
 
 @app.template_filter("format_cron")
 def format_cron(expr):
-    """格式化 Cron 表达式为可读文本"""
+    """格式化调度表达式为可读文本"""
     if not expr:
         return ""
     
     expr = expr.strip().lower()
+    
+    # 间隔格式
+    if expr.startswith("every "):
+        interval_part = expr[6:].strip()
+        if interval_part.endswith("m"):
+            return f"每 {interval_part[:-1]} 分钟"
+        elif interval_part.endswith("h"):
+            return f"每 {interval_part[:-1]} 小时"
+        elif interval_part.endswith("s"):
+            return f"每 {interval_part[:-1]} 秒"
+        return f"每 {interval_part}"
     
     if expr.startswith("daily "):
         return f"每天 {expr[6:]}"
