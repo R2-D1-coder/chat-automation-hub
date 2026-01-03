@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- 左侧：任务列表 -->
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">
+                <i class="bi bi-list-task me-2"></i>定时任务
+                <small class="text-muted fs-6">({{ tasks|length }} 个)</small>
+            </h4>
+            <a href="{{ url_for('new_task') }}" class="btn btn-wechat">
+                <i class="bi bi-plus-lg me-1"></i>新建任务
+            </a>
+        </div>
+        
+        {% if tasks %}
+            {% for task in tasks %}
+            <div class="card task-card mb-3 {% if not task.enabled %}disabled{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">
+                                {% if task.enabled %}
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                {% else %}
+                                    <i class="bi bi-pause-circle text-muted me-1"></i>
+                                {% endif %}
+                                {{ task.name }}
+                            </h5>
+                            
+                            <div class="mb-2">
+                                <span class="cron-display">
+                                    <i class="bi bi-clock me-1"></i>{{ task.cron_expression | format_cron }}
+                                </span>
+                            </div>
+                            
+                            <div class="groups-list mb-2">
+                                <i class="bi bi-people-fill me-1 text-muted"></i>
+                                {% for group in task.groups | to_json %}
+                                    <span class="group-tag">{{ group }}</span>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="text-muted small">
+                                <i class="bi bi-chat-text me-1"></i>
+                                {{ task.text[:50] }}{% if task.text|length > 50 %}...{% endif %}
+                                {% if task.image_path %}
+                                    <span class="ms-2"><i class="bi bi-image me-1"></i>含图片</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <form action="{{ url_for('run_task', task_id=task.id) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-outline-primary btn-sm" title="立即执行">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                            </form>
+                            <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-outline-secondary btn-sm" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form action="{{ url_for('toggle_task', task_id=task.id) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-outline-{% if task.enabled %}warning{% else %}success{% endif %} btn-sm" 
+                                        title="{% if task.enabled %}禁用{% else %}启用{% endif %}">
+                                    <i class="bi bi-{% if task.enabled %}pause{% else %}play{% endif %}"></i>
+                                </button>
+                            </form>
+                            <form action="{{ url_for('delete_task', task_id=task.id) }}" method="post" class="d-inline"
+                                  onsubmit="return confirm('确定要删除任务「{{ task.name }}」吗？')">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="删除">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-3 mb-0">暂无定时任务</p>
+                    <a href="{{ url_for('new_task') }}" class="btn btn-wechat mt-3">
+                        <i class="bi bi-plus-lg me-1"></i>创建第一个任务
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- 右侧：状态和日志 -->
+    <div class="col-lg-4">
+        <!-- 调度器状态 -->
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <i class="bi bi-gear-fill me-1"></i>调度器状态
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>
+                        <span class="badge bg-{% if status.running %}success{% else %}danger{% endif %}">
+                            {% if status.running %}运行中{% else %}已停止{% endif %}
+                        </span>
+                    </span>
+                    <span class="text-muted">{{ status.jobs }} 个活跃任务</span>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    {% if status.running %}
+                        <button class="btn btn-outline-danger btn-sm" onclick="controlScheduler('stop')">
+                            <i class="bi bi-stop-fill me-1"></i>停止调度器
+                        </button>
+                    {% else %}
+                        <button class="btn btn-wechat btn-sm" onclick="controlScheduler('start')">
+                            <i class="bi bi-play-fill me-1"></i>启动调度器
+                        </button>
+                    {% endif %}
+                    <button class="btn btn-outline-secondary btn-sm" onclick="controlScheduler('reload')">
+                        <i class="bi bi-arrow-clockwise me-1"></i>重新加载任务
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 白名单群组 -->
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <i class="bi bi-shield-check me-1"></i>白名单群组
+            </div>
+            <div class="card-body">
+                <div class="groups-list">
+                    {% for group in allowed_groups %}
+                        <span class="group-tag">{{ group }}</span>
+                    {% else %}
+                        <span class="text-muted">未配置白名单</span>
+                    {% endfor %}
+                </div>
+                <small class="text-muted mt-2 d-block">
+                    <i class="bi bi-info-circle me-1"></i>在 config.json 中配置
+                </small>
+            </div>
+        </div>
+        
+        <!-- 最近执行 -->
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history me-1"></i>最近执行</span>
+                <a href="{{ url_for('logs') }}" class="btn btn-link btn-sm p-0">查看全部</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for log in logs %}
+                    <li class="list-group-item py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-{% if log.status == 'success' %}check-circle-fill log-success{% else %}x-circle-fill log-failed{% endif %} me-1"></i>
+                                <span class="small">{{ log.task_name }}</span>
+                            </div>
+                            <small class="text-muted">{{ log.executed_at | format_datetime }}</small>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-center text-muted py-3">
+                        暂无执行记录
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function controlScheduler(action) {
+    fetch(`/api/scheduler/${action}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        })
+        .catch(e => alert('操作失败: ' + e));
+}
+</script>
+{% endblock %}
+

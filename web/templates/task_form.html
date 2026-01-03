@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "新建任务" if is_new else "编辑任务" }} - 微信群发管理中心{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-{% if is_new %}plus-circle{% else %}pencil{% endif %} me-2"></i>
+                    {{ "新建任务" if is_new else "编辑任务" }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    <!-- 任务名称 -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-tag me-1"></i>任务名称 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" name="name" 
+                               value="{{ task.name }}" placeholder="如：每日晚报推送" required>
+                    </div>
+                    
+                    <!-- 目标群组 -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-people me-1"></i>目标群组 <span class="text-danger">*</span>
+                        </label>
+                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            {% set selected_groups = task.groups | to_json %}
+                            {% for group in allowed_groups %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       name="groups" value="{{ group }}" id="group_{{ loop.index }}"
+                                       {% if group in selected_groups %}checked{% endif %}>
+                                <label class="form-check-label" for="group_{{ loop.index }}">
+                                    {{ group }}
+                                </label>
+                            </div>
+                            {% else %}
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-exclamation-circle me-1"></i>
+                                未配置白名单群组，请先在 config.json 中添加 allowed_groups
+                            </p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- 消息内容 -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-chat-text me-1"></i>消息内容 <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" name="text" rows="4" 
+                                  placeholder="输入消息内容，支持 {ts} 变量（会被替换为发送时间）">{{ task.text }}</textarea>
+                        <div class="form-text">
+                            <i class="bi bi-lightbulb me-1"></i>
+                            支持变量：<code>{ts}</code> = 当前时间（如 2026-01-03 20:00:00）
+                        </div>
+                    </div>
+                    
+                    <!-- 图片 -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-image me-1"></i>附带图片（可选）
+                        </label>
+                        {% if task.image_path %}
+                        <div class="alert alert-info py-2 d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-image me-1"></i>
+                                当前图片：{{ task.image_path }}
+                            </span>
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" name="clear_image" id="clear_image">
+                                <label class="form-check-label" for="clear_image">清除图片</label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <input type="file" class="form-control" name="image_file" accept="image/*">
+                        <div class="form-text">支持 PNG、JPG、GIF 格式</div>
+                    </div>
+                    
+                    <!-- 调度规则 -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-clock me-1"></i>调度规则 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" name="cron_expression" 
+                               value="{{ task.cron_expression }}" 
+                               placeholder="如：daily 20:00 或 weekly 6 12:00" required>
+                        <div class="form-text">
+                            <strong>简化格式：</strong><br>
+                            <code>daily HH:MM</code> - 每天指定时间（如 <code>daily 20:00</code> 每天晚上8点）<br>
+                            <code>weekly N HH:MM</code> - 每周指定日期（0=周日，6=周六，如 <code>weekly 6 12:00</code> 每周六中午）<br>
+                            <code>monthly D HH:MM</code> - 每月指定日期（如 <code>monthly 1 09:00</code> 每月1日早上9点）<br>
+                            <strong>标准 Cron：</strong><code>分 时 日 月 周</code>（如 <code>0 20 * * *</code>）
+                        </div>
+                    </div>
+                    
+                    <!-- 启用状态 -->
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="enabled" id="enabled"
+                                   {% if task.enabled or is_new %}checked{% endif %}>
+                            <label class="form-check-label" for="enabled">启用任务</label>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-wechat">
+                            <i class="bi bi-check-lg me-1"></i>{{ "创建任务" if is_new else "保存修改" }}
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>取消
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

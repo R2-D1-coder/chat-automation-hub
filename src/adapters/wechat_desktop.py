@@ -1,4 +1,5 @@
 """微信桌面客户端适配器"""
+import io
 import random
 import time
 from datetime import datetime
@@ -15,6 +16,7 @@ from src.core.retry import retry
 
 # 输出目录
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 log = Logger("wechat_adapter")
 
@@ -22,6 +24,47 @@ log = Logger("wechat_adapter")
 def _safe_sleep(min_sec: float = 0.1, max_sec: float = 0.4):
     """随机延迟，防止快捷键操作过快导致丢失"""
     time.sleep(random.uniform(min_sec, max_sec))
+
+
+def _copy_image_to_clipboard(image_path: Path) -> bool:
+    """
+    将图片复制到 Windows 剪贴板
+    
+    Args:
+        image_path: 图片文件路径
+        
+    Returns:
+        True 如果成功，False 如果失败
+    """
+    try:
+        import win32clipboard
+        from PIL import Image
+        
+        # 打开图片并转换为 BMP 格式（Windows 剪贴板格式）
+        img = Image.open(image_path)
+        
+        # 转换为 RGB（如果是 RGBA 或其他格式）
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # 转换为 BMP 格式的字节流
+        output = io.BytesIO()
+        img.save(output, format='BMP')
+        bmp_data = output.getvalue()[14:]  # 去掉 BMP 文件头
+        output.close()
+        
+        # 复制到剪贴板
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(win32clipboard.CF_DIB, bmp_data)
+        win32clipboard.CloseClipboard()
+        
+        log.debug("图片已复制到剪贴板", path=str(image_path))
+        return True
+        
+    except Exception as e:
+        log.error("复制图片到剪贴板失败", error=str(e))
+        return False
 
 
 class SafetyError(Exception):
@@ -217,13 +260,14 @@ class WeChatBroadcaster:
         return False
     
     @retry(max_attempts=3, base_delay=1.0, jitter=0.3, exceptions=(Exception,))
-    def _send_to_group(self, group_name: str, text: str):
+    def _send_to_group(self, group_name: str, text: str, image_path: Optional[Path] = None):
         """
         发送消息到指定群
         
         Args:
             group_name: 群名称
             text: 消息文本
+            image_path: 可选的图片路径，如果提供则先发送图片
             
         Raises:
             RuntimeError: 窗口聚焦失败时
@@ -232,6 +276,7 @@ class WeChatBroadcaster:
             log.info(f"[DRY_RUN] 将发送到群",
                      group=group_name,
                      text_len=len(text),
+                     has_image=image_path is not None,
                      text_preview=text[:50] + "..." if len(text) > 50 else text)
             return
         
@@ -265,9 +310,21 @@ class WeChatBroadcaster:
         desktop.press_keys("enter")
         _safe_sleep(0.5, 0.7)  # 等待聊天窗口切换
         
-        # 7. 再次确保窗口聚焦（防止切换群时焦点丢失）
+        # 6. 再次确保窗口聚焦（防止切换群时焦点丢失）
         self._focus_window(retry_count=1)
         _safe_sleep(0.2, 0.3)
+        
+        # 7. 如果有图片，先发送图片
+        if image_path and image_path.exists():
+            log.debug("发送图片", path=str(image_path))
+            if _copy_image_to_clipboard(image_path):
+                desktop.press_keys("ctrl", "v")
+                _safe_sleep(0.5, 0.7)  # 等待图片加载
+                desktop.press_keys("enter")
+                _safe_sleep(0.5, 0.7)  # 等待图片发送完成
+                log.info("图片已发送", group=group_name)
+            else:
+                log.warn("图片发送失败，继续发送文本")
         
         # 8. 输入消息文本
         log.debug("输入消息文本")
@@ -280,7 +337,7 @@ class WeChatBroadcaster:
         desktop.press_keys("enter")
         _safe_sleep(0.3, 0.4)
         
-        log.info(f"消息已发送", group=group_name, text_len=len(text))
+        log.info(f"消息已发送", group=group_name, text_len=len(text), has_image=image_path is not None)
     
     def _try_recover_window_state(self):
         """
@@ -313,13 +370,14 @@ class WeChatBroadcaster:
         if invalid_groups:
             raise WhitelistError(f"以下群不在白名单中: {invalid_groups}")
     
-    def broadcast(self, groups: List[str], text: str) -> dict:
+    def broadcast(self, groups: List[str], text: str, image_path: Optional[Path] = None) -> dict:
         """
         广播消息到多个群
         
         Args:
             groups: 目标群列表
             text: 消息文本
+            image_path: 可选的图片路径
             
         Returns:
             执行结果统计 {"sent": N, "skipped": N, "failed": N}
@@ -328,6 +386,7 @@ class WeChatBroadcaster:
         log.info("开始广播任务",
                  groups=len(groups),
                  text_len=len(text),
+                 has_image=image_path is not None,
                  armed=self.armed,
                  dry_run=self.dry_run)
         
@@ -365,7 +424,7 @@ class WeChatBroadcaster:
             
             # 4.3 发送（带重试）
             try:
-                self._send_to_group(group, text)
+                self._send_to_group(group, text, image_path)
                 
                 # 4.4 标记已发送
                 mark_sent(group, text)

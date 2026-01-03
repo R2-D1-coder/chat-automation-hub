@@ -26,6 +26,17 @@ def wechat_broadcast():
     broadcast_cfg = config.get("broadcast", {})
     groups = broadcast_cfg.get("groups", [])
     text_template = broadcast_cfg.get("text", "")
+    image_rel_path = broadcast_cfg.get("image", None)
+    
+    # 处理图片路径
+    image_path = None
+    if image_rel_path:
+        image_path = Path(image_rel_path)
+        if not image_path.is_absolute():
+            image_path = Path(__file__).parent / image_rel_path
+        if not image_path.exists():
+            print(f"[警告] 图片文件不存在: {image_path}")
+            image_path = None
     
     # 渲染文本（替换 {ts} 为当前时间）
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -42,6 +53,7 @@ def wechat_broadcast():
     print("=" * 60)
     print(f"[安全] armed={armed}, dry_run={dry_run}")
     print(f"[目标群组] {groups}")
+    print(f"[图片] {image_path if image_path else '无'}")
     print(f"[消息内容] ({len(rendered_text)} 字符)")
     print("-" * 40)
     print(rendered_text)
@@ -50,7 +62,7 @@ def wechat_broadcast():
     # 执行广播
     try:
         broadcaster = WeChatBroadcaster(config)
-        stats = broadcaster.broadcast(groups, rendered_text)
+        stats = broadcaster.broadcast(groups, rendered_text, image_path)
         
         print("\n[结果统计]")
         print(f"  发送成功: {stats['sent']}")

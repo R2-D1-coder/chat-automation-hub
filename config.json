@@ -20,7 +20,8 @@
     "groups": [
       "个人群"
     ],
-    "text": "【自动通知】当前时间: {ts}\n这是一条测试消息。"
+    "text": "【自动通知】当前时间: {ts}\n这是一条测试消息。",
+    "image": "assets/test_image.png"
   }
 }
 
