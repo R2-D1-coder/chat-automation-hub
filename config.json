@@ -1,7 +1,5 @@
 {
   "wechat": {
-    "exe_path": "C:\\Program Files (x86)\\Tencent\\WeChat\\WeChat.exe",
-    "window_title_regex": "微信",
     "per_message_delay_sec": 2.0,
     "max_per_minute": 10,
     "min_send_interval_sec": 10,
@@ -9,8 +7,7 @@
   },
   "safety": {
     "armed": true,
-    "dry_run": false,
-    "confirm": false
+    "dry_run": false
   },
   "allowed_groups": [
     "个人群",
@@ -25,4 +22,3 @@
     "image": "assets/test_image.png"
   }
 }
-
