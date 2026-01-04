@@ -283,6 +283,9 @@ def api_queue():
     
     include_completed = request.args.get("include_completed", "false").lower() == "true"
     queue = get_send_queue()
+    # 确保执行器正在运行（如果有待处理的任务）
+    if queue.get_pending_count() > 0:
+        queue.ensure_executor_running()
     actions = queue.get_queue(include_completed=include_completed)
     pending_count = queue.get_pending_count()
     
