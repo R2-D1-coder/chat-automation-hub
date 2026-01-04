@@ -224,6 +224,51 @@ def api_reload_scheduler():
     return jsonify({"success": True, "message": "已重新加载所有任务"})
 
 
+# ========== 发送队列 API ==========
+
+@app.route("/queue")
+def queue_page():
+    """发送队列页面"""
+    status = get_scheduler_status()
+    return render_template("queue.html", status=status)
+
+
+@app.route("/api/queue")
+def api_queue():
+    """获取发送队列"""
+    from src.core.send_queue import get_send_queue
+    
+    include_completed = request.args.get("include_completed", "false").lower() == "true"
+    queue = get_send_queue()
+    actions = queue.get_queue(include_completed=include_completed)
+    pending_count = queue.get_pending_count()
+    
+    return jsonify({
+        "actions": actions,
+        "pending_count": pending_count
+    })
+
+
+@app.route("/api/queue/clear", methods=["POST"])
+def api_clear_queue():
+    """清空待执行队列"""
+    from src.core.send_queue import get_send_queue
+    
+    queue = get_send_queue()
+    queue.clear_all()
+    return jsonify({"success": True, "message": "队列已清空"})
+
+
+@app.route("/api/queue/clear-completed", methods=["POST"])
+def api_clear_completed():
+    """清理已完成的动作"""
+    from src.core.send_queue import get_send_queue
+    
+    queue = get_send_queue()
+    queue.clear_completed()
+    return jsonify({"success": True, "message": "已清理完成的动作"})
+
+
 # ========== 模板过滤器 ==========
 
 @app.template_filter("format_datetime")

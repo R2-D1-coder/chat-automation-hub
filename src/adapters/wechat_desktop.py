@@ -306,18 +306,22 @@ class WeChatBroadcaster:
         if invalid:
             raise WhitelistError(f"以下群不在白名单中: {invalid}")
     
-    def broadcast(self, groups: List[str], text: str, image_path: Optional[Path] = None) -> dict:
+    def broadcast(self, groups: List[str], text: str, image_path: Optional[Path] = None, 
+                  task_name: str = "手动任务") -> dict:
         """
-        广播消息到多个群
+        广播消息到多个群（使用全局队列）
         
         Args:
             groups: 目标群列表（需要提前打开独立窗口）
             text: 消息文本
             image_path: 可选的图片路径
+            task_name: 任务名称
             
         Returns:
-            执行结果统计 {"sent": N, "skipped": N, "failed": N}
+            调度结果统计 {"scheduled": N, "skipped": N}
         """
+        from src.core.send_queue import get_send_queue
+        
         log.info("=" * 50)
         log.info("开始广播任务",
                  groups=len(groups),
@@ -338,51 +342,70 @@ class WeChatBroadcaster:
         if not self._ensure_windows_ready(groups):
             raise RuntimeError("独立窗口未就绪，请先打开目标群的独立聊天窗口")
         
-        # 4. 获取随机延迟配置
+        # 4. 过滤需要发送的群（去重检查）
+        groups_to_send = []
+        min_interval = self.config.get("wechat", {}).get("min_send_interval_sec", 60)
+        
+        for group in groups:
+            if not should_send(group, min_interval_sec=min_interval):
+                log.info(f"    跳过（间隔内）: {group}")
+                continue
+            groups_to_send.append(group)
+        
+        if not groups_to_send:
+            log.info("没有需要发送的群")
+            return {"scheduled": 0, "skipped": len(groups), "sent": 0, "failed": 0}
+        
+        # 5. 获取配置
         random_delay_minutes = self.config.get("wechat", {}).get("random_delay_minutes", 0)
         
-        # 5. 执行广播
-        stats = {"sent": 0, "skipped": 0, "failed": 0}
-        rate_limiter = get_rate_limiter()
+        # 6. 加入全局发送队列
+        queue = get_send_queue()
         
-        for i, group in enumerate(groups, 1):
-            log.info(f">>> 处理 {i}/{len(groups)}: {group}")
-            
-            # 去重检查
-            min_interval = self.config.get("wechat", {}).get("min_send_interval_sec", 60)
-            if not should_send(group, min_interval_sec=min_interval):
-                log.info(f"    跳过（间隔内）")
-                stats["skipped"] += 1
-                continue
-            
-            # 每个群独立的随机延迟
-            if random_delay_minutes > 0 and not self.dry_run:
-                delay_seconds = random.randint(0, random_delay_minutes * 60)
-                delay_min = delay_seconds // 60
-                delay_sec = delay_seconds % 60
-                log.info(f"    随机延迟 {delay_min} 分 {delay_sec} 秒")
-                time.sleep(delay_seconds)
-            
-            # 限频等待
-            waited = rate_limiter.acquire()
-            if waited > 0:
-                log.info(f"限频等待 {waited:.2f}s")
-            
-            # 发送
-            try:
-                self._send_to_group(group, text, image_path)
-                mark_sent(group)
-                stats["sent"] += 1
-            except Exception as e:
-                log.error(f"发送失败", group=group, error=str(e))
-                if not self.dry_run:
-                    self._take_screenshot(f"send_failed_{group}")
-                stats["failed"] += 1
-            
-            # 消息间延迟（随机延迟已包含间隔效果，这里只在没有随机延迟时生效）
-            if i < len(groups) and random_delay_minutes == 0:
-                time.sleep(self.per_message_delay_sec)
+        # 设置发送函数（如果还没设置）
+        queue.set_send_function(self._do_send)
         
-        log.info("广播完成", **stats)
+        # 启动执行器（如果还没启动）
+        queue.start_executor()
+        
+        # 加入队列
+        image_str = str(image_path) if image_path else None
+        actions = queue.schedule_actions(
+            task_name=task_name,
+            groups=groups_to_send,
+            text=text,
+            image_path=image_str,
+            window_minutes=random_delay_minutes
+        )
+        
+        log.info(f"已加入队列 {len(actions)} 个发送任务")
+        for action in actions:
+            log.info(f"    {action.scheduled_time.strftime('%H:%M:%S')} → {action.group_name}")
+        
+        stats = {
+            "scheduled": len(actions),
+            "skipped": len(groups) - len(groups_to_send),
+            "sent": 0,  # 实际发送由队列异步完成
+            "failed": 0
+        }
+        
+        log.info("广播任务已调度", **stats)
         log.info("=" * 50)
         return stats
+    
+    def _do_send(self, group_name: str, text: str, image_path: Optional[Path]) -> bool:
+        """
+        实际执行发送（供队列调用）
+        
+        Returns:
+            是否成功
+        """
+        try:
+            self._send_to_group(group_name, text, image_path)
+            mark_sent(group_name)
+            return True
+        except Exception as e:
+            log.error(f"发送失败", group=group_name, error=str(e))
+            if not self.dry_run:
+                self._take_screenshot(f"send_failed_{group_name}")
+            return False

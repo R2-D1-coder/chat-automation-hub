@@ -59,14 +59,14 @@ def execute_task(task_id: int):
             log.warn("图片文件不存在", path=str(image_path))
             image_path = None
         
-        # 执行广播
+        # 执行广播（加入全局发送队列）
         broadcaster = WeChatBroadcaster(config)
-        stats = broadcaster.broadcast(groups, text, image_path)
+        stats = broadcaster.broadcast(groups, text, image_path, task_name=task.name)
         
-        # 记录成功日志
+        # 记录调度日志
         exec_log.status = "success"
-        exec_log.message = f"sent={stats['sent']}, skipped={stats['skipped']}, failed={stats['failed']}"
-        log.info("任务执行成功", **stats)
+        exec_log.message = f"scheduled={stats['scheduled']}, skipped={stats['skipped']}"
+        log.info("任务调度成功", **stats)
         
     except Exception as e:
         # 记录失败日志

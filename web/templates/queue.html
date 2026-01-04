@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">
+                <i class="bi bi-list-ol me-2"></i>发送队列
+                <span class="badge bg-primary ms-2" id="pending-count">0</span>
+            </h4>
+            <div>
+                <button class="btn btn-outline-secondary btn-sm me-2" onclick="toggleCompleted()">
+                    <i class="bi bi-eye me-1"></i><span id="toggle-text">显示已完成</span>
+                </button>
+                <button class="btn btn-outline-warning btn-sm me-2" onclick="clearCompleted()">
+                    <i class="bi bi-trash me-1"></i>清理已完成
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="clearQueue()">
+                    <i class="bi bi-x-circle me-1"></i>清空队列
+                </button>
+            </div>
+        </div>
+        
+        <!-- 队列说明 -->
+        <div class="alert alert-info mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            <strong>队列机制：</strong>所有任务的发送动作统一排队，自动保证每个动作至少间隔 2 分钟，避免冲突。
+        </div>
+        
+        <!-- 队列表格 -->
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 140px;">计划时间</th>
+                                <th style="width: 120px;">任务</th>
+                                <th style="width: 120px;">群名</th>
+                                <th>消息预览</th>
+                                <th style="width: 100px;">状态</th>
+                                <th style="width: 140px;">执行时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queue-body">
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-hourglass-split me-1"></i>加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 自动刷新提示 -->
+        <div class="text-muted small mt-2">
+            <i class="bi bi-arrow-repeat me-1"></i>每 3 秒自动刷新
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let showCompleted = false;
+let refreshInterval = null;
+
+function loadQueue() {
+    const url = `/api/queue?include_completed=${showCompleted}`;
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            renderQueue(data.actions);
+            document.getElementById('pending-count').textContent = data.pending_count;
+        })
+        .catch(e => console.error('加载失败:', e));
+}
+
+function renderQueue(actions) {
+    const tbody = document.getElementById('queue-body');
+    
+    if (actions.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0">队列为空</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = actions.map(action => {
+        const statusBadge = getStatusBadge(action.status);
+        const hasImage = action.image_path ? '<i class="bi bi-image text-muted ms-1" title="含图片"></i>' : '';
+        
+        return `
+            <tr class="${action.status === 'running' ? 'table-warning' : ''}">
+                <td>
+                    <i class="bi bi-clock me-1"></i>
+                    ${action.scheduled_time.split(' ')[1]}
+                    <br>
+                    <small class="text-muted">${action.scheduled_time.split(' ')[0]}</small>
+                </td>
+                <td>
+                    <span class="badge bg-secondary">${action.task_name}</span>
+                </td>
+                <td>
+                    <span class="group-tag">${action.group_name}</span>
+                </td>
+                <td>
+                    <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${action.text}">
+                        ${action.text}
+                    </span>
+                    ${hasImage}
+                </td>
+                <td>${statusBadge}</td>
+                <td>
+                    ${action.executed_at ? `<small>${action.executed_at.split(' ')[1]}</small>` : '-'}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function getStatusBadge(status) {
+    const map = {
+        'pending': '<span class="badge bg-info"><i class="bi bi-hourglass-split me-1"></i>等待</span>',
+        'running': '<span class="badge bg-warning"><i class="bi bi-play-fill me-1"></i>执行中</span>',
+        'success': '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>成功</span>',
+        'failed': '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>失败</span>'
+    };
+    return map[status] || status;
+}
+
+function toggleCompleted() {
+    showCompleted = !showCompleted;
+    document.getElementById('toggle-text').textContent = showCompleted ? '隐藏已完成' : '显示已完成';
+    loadQueue();
+}
+
+function clearQueue() {
+    if (!confirm('确定要清空所有待执行的任务吗？正在执行的不会被中断。')) return;
+    
+    fetch('/api/queue/clear', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.message);
+            loadQueue();
+        })
+        .catch(e => alert('操作失败: ' + e));
+}
+
+function clearCompleted() {
+    fetch('/api/queue/clear-completed', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            loadQueue();
+        })
+        .catch(e => alert('操作失败: ' + e));
+}
+
+// 页面加载
+document.addEventListener('DOMContentLoaded', function() {
+    loadQueue();
+    // 每 3 秒刷新一次
+    refreshInterval = setInterval(loadQueue, 3000);
+});
+
+// 页面离开时停止刷新
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) clearInterval(refreshInterval);
+});
+</script>
+{% endblock %}
+
