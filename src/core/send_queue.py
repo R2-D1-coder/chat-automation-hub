@@ -232,10 +232,6 @@ class SendQueue:
                 if action:
                     self._execute_action(action)
                 else:
-                    # 每10秒输出一次调试信息（如果有待处理任务）
-                    pending_count = self.get_pending_count()
-                    if pending_count > 0:
-                        log.debug(f"执行器运行中，待处理任务数: {pending_count}")
                     time.sleep(1)  # 无任务时休眠
             except Exception as e:
                 log.error(f"执行器错误: {e}", exc_info=True)
