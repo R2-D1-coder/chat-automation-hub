@@ -124,6 +124,24 @@
             </div>
         </div>
         
+        <!-- 发送队列 -->
+        <div class="card mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-list-ol me-1"></i>发送队列
+                    <span class="badge bg-primary ms-1" id="queue-count">0</span>
+                </span>
+                <a href="{{ url_for('queue_page') }}" class="btn btn-link btn-sm p-0">查看详情</a>
+            </div>
+            <div class="card-body p-0">
+                <div id="queue-list" style="max-height: 200px; overflow-y: auto;">
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-hourglass-split me-1"></i>加载中...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- 白名单群组 -->
         <div class="card mb-3">
             <div class="card-header bg-white">
@@ -184,6 +202,55 @@ function controlScheduler(action) {
         })
         .catch(e => alert('操作失败: ' + e));
 }
+
+function loadQueue() {
+    fetch('/api/queue')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('queue-count').textContent = data.pending_count;
+            renderQueueList(data.actions);
+        })
+        .catch(e => console.error('加载队列失败:', e));
+}
+
+function renderQueueList(actions) {
+    const container = document.getElementById('queue-list');
+    
+    if (actions.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-3"><i class="bi bi-inbox me-1"></i>队列为空</div>';
+        return;
+    }
+    
+    container.innerHTML = '<ul class="list-group list-group-flush">' + 
+        actions.slice(0, 5).map(action => {
+            const statusIcon = {
+                'pending': 'hourglass-split text-info',
+                'running': 'play-fill text-warning',
+                'success': 'check-circle-fill text-success',
+                'failed': 'x-circle-fill text-danger'
+            }[action.status] || 'question-circle';
+            
+            return `<li class="list-group-item py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-${statusIcon} me-1"></i>
+                        <span class="small">${action.group_name}</span>
+                    </div>
+                    <small class="text-muted">${action.scheduled_time.split(' ')[1]}</small>
+                </div>
+            </li>`;
+        }).join('') + '</ul>';
+    
+    if (actions.length > 5) {
+        container.innerHTML += `<div class="text-center text-muted small py-1">还有 ${actions.length - 5} 个...</div>`;
+    }
+}
+
+// 页面加载时获取队列，并每 5 秒刷新一次
+document.addEventListener('DOMContentLoaded', function() {
+    loadQueue();
+    setInterval(loadQueue, 5000);
+});
 </script>
 {% endblock %}
 

@@ -167,6 +167,13 @@ def toggle_task(task_id: int):
         db.toggle_task(task_id, new_status)
         task.enabled = new_status
         add_job_for_task(task)
+        
+        # 禁用任务时，清空该任务在队列中的待发送动作
+        if not new_status:
+            from src.core.send_queue import get_send_queue
+            queue = get_send_queue()
+            queue.clear_task(task.name)
+        
         status_text = "启用" if new_status else "禁用"
         flash(f"任务 '{task.name}' 已{status_text}", "success")
     return redirect(url_for("index"))
@@ -174,14 +181,14 @@ def toggle_task(task_id: int):
 
 @app.route("/task/<int:task_id>/run", methods=["POST"])
 def run_task(task_id: int):
-    """立即执行任务"""
+    """立即执行任务（跳过队列，直接发送）"""
     task = db.get_task(task_id)
     if task:
-        # 异步执行（避免阻塞）
+        # 异步执行（避免阻塞），immediate=True 跳过队列直接发送
         import threading
-        thread = threading.Thread(target=execute_task, args=(task_id,))
+        thread = threading.Thread(target=execute_task, args=(task_id, True))
         thread.start()
-        flash(f"任务 '{task.name}' 已开始执行", "info")
+        flash(f"任务 '{task.name}' 正在立即执行（跳过队列）", "info")
     return redirect(url_for("index"))
 
 
@@ -212,9 +219,15 @@ def api_start_scheduler():
 
 @app.route("/api/scheduler/stop", methods=["POST"])
 def api_stop_scheduler():
-    """停止调度器"""
+    """停止调度器并清空发送队列"""
     stop_scheduler()
-    return jsonify({"success": True, "message": "调度器已停止"})
+    
+    # 同时清空发送队列
+    from src.core.send_queue import get_send_queue
+    queue = get_send_queue()
+    queue.clear_all()
+    
+    return jsonify({"success": True, "message": "调度器已停止，发送队列已清空"})
 
 
 @app.route("/api/scheduler/reload", methods=["POST"])

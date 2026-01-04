@@ -188,6 +188,19 @@ class SendQueue:
             self._queue = [a for a in self._queue if a.status == "running"]
             log.info("队列已清空")
     
+    def clear_task(self, task_name: str):
+        """清空指定任务的待执行动作"""
+        with self._lock:
+            before = len([a for a in self._queue if a.status == "pending"])
+            self._queue = [
+                a for a in self._queue 
+                if a.status != "pending" or a.task_name != task_name
+            ]
+            after = len([a for a in self._queue if a.status == "pending"])
+            removed = before - after
+            if removed > 0:
+                log.info(f"已清除任务 '{task_name}' 的 {removed} 个待发送动作")
+    
     def start_executor(self):
         """启动执行器线程"""
         if self._executor_thread and self._executor_thread.is_alive():

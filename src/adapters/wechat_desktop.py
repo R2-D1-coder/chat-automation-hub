@@ -122,7 +122,7 @@ def find_window_by_group_name(group_name: str) -> Optional[Dict[str, Any]]:
 
 
 def focus_independent_window(window_info: Dict[str, Any]) -> bool:
-    """聚焦独立窗口"""
+    """聚焦独立窗口并点击输入框区域"""
     try:
         win = window_info["window"]
         name = window_info["name"]
@@ -130,10 +130,29 @@ def focus_independent_window(window_info: Dict[str, Any]) -> bool:
         win.SetFocus()
         time.sleep(0.2)
         
-        try:
-            win.Click()
-        except Exception:
-            pass
+        # 获取窗口位置
+        rect = win.BoundingRectangle
+        if rect:
+            # 点击窗口底部 1/5 处（输入框区域）
+            # 输入框大约在窗口高度的 85% 位置
+            center_x = (rect.left + rect.right) // 2
+            input_y = rect.top + int((rect.bottom - rect.top) * 0.85)
+            
+            try:
+                auto.Click(center_x, input_y)
+                log.debug(f"点击输入框区域: ({center_x}, {input_y})")
+            except Exception:
+                # 备用方案：直接点击窗口
+                try:
+                    win.Click()
+                except Exception:
+                    pass
+        else:
+            # 无法获取位置，使用默认点击
+            try:
+                win.Click()
+            except Exception:
+                pass
         
         time.sleep(0.2)
         log.info(f"独立窗口已聚焦", name=name)
@@ -307,18 +326,19 @@ class WeChatBroadcaster:
             raise WhitelistError(f"以下群不在白名单中: {invalid}")
     
     def broadcast(self, groups: List[str], text: str, image_path: Optional[Path] = None, 
-                  task_name: str = "手动任务") -> dict:
+                  task_name: str = "手动任务", immediate: bool = False) -> dict:
         """
-        广播消息到多个群（使用全局队列）
+        广播消息到多个群
         
         Args:
             groups: 目标群列表（需要提前打开独立窗口）
             text: 消息文本
             image_path: 可选的图片路径
             task_name: 任务名称
+            immediate: 是否立即发送（跳过队列，用于测试）
             
         Returns:
-            调度结果统计 {"scheduled": N, "skipped": N}
+            执行结果统计
         """
         from src.core.send_queue import get_send_queue
         
@@ -328,7 +348,8 @@ class WeChatBroadcaster:
                  text_len=len(text),
                  has_image=image_path is not None,
                  armed=self.armed,
-                 dry_run=self.dry_run)
+                 dry_run=self.dry_run,
+                 immediate=immediate)
         
         # 1. 白名单校验
         self._validate_whitelist(groups)
@@ -342,7 +363,30 @@ class WeChatBroadcaster:
         if not self._ensure_windows_ready(groups):
             raise RuntimeError("独立窗口未就绪，请先打开目标群的独立聊天窗口")
         
-        # 4. 过滤需要发送的群（去重检查）
+        # 4. 立即执行模式（用于测试，不进队列，不检查间隔）
+        if immediate:
+            log.info("【立即执行模式】跳过队列，直接发送")
+            stats = {"sent": 0, "failed": 0, "skipped": 0, "scheduled": 0}
+            
+            for i, group in enumerate(groups, 1):
+                log.info(f">>> 立即发送 {i}/{len(groups)}: {group}")
+                try:
+                    self._send_to_group(group, text, image_path)
+                    mark_sent(group)
+                    stats["sent"] += 1
+                except Exception as e:
+                    log.error(f"发送失败", group=group, error=str(e))
+                    stats["failed"] += 1
+                
+                # 消息间短暂延迟
+                if i < len(groups):
+                    time.sleep(self.per_message_delay_sec)
+            
+            log.info("立即执行完成", **stats)
+            log.info("=" * 50)
+            return stats
+        
+        # 5. 队列模式：过滤需要发送的群（去重检查）
         groups_to_send = []
         min_interval = self.config.get("wechat", {}).get("min_send_interval_sec", 60)
         
@@ -356,10 +400,10 @@ class WeChatBroadcaster:
             log.info("没有需要发送的群")
             return {"scheduled": 0, "skipped": len(groups), "sent": 0, "failed": 0}
         
-        # 5. 获取配置
+        # 6. 获取配置
         random_delay_minutes = self.config.get("wechat", {}).get("random_delay_minutes", 0)
         
-        # 6. 加入全局发送队列
+        # 7. 加入全局发送队列
         queue = get_send_queue()
         
         # 设置发送函数（如果还没设置）

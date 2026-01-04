@@ -21,19 +21,27 @@ log = Logger("scheduler")
 scheduler: Optional[BackgroundScheduler] = None
 
 
-def execute_task(task_id: int):
-    """执行定时任务"""
+def execute_task(task_id: int, immediate: bool = False):
+    """
+    执行定时任务
+    
+    Args:
+        task_id: 任务ID
+        immediate: 是否立即执行（跳过队列，用于手动测试）
+    """
     task = db.get_task(task_id)
     if not task:
         log.error("任务不存在", task_id=task_id)
         return
     
-    if not task.enabled:
+    # 定时触发时检查是否启用，手动立即执行不检查
+    if not immediate and not task.enabled:
         log.info("任务已禁用，跳过", task_id=task_id, name=task.name)
         return
     
     log.info("=" * 50)
-    log.info("开始执行定时任务", task_id=task_id, name=task.name)
+    mode = "【立即执行】" if immediate else "【定时任务】"
+    log.info(f"{mode} 开始执行", task_id=task_id, name=task.name)
     
     exec_log = ExecutionLog(
         task_id=task_id,
@@ -59,14 +67,18 @@ def execute_task(task_id: int):
             log.warn("图片文件不存在", path=str(image_path))
             image_path = None
         
-        # 执行广播（加入全局发送队列）
+        # 执行广播
         broadcaster = WeChatBroadcaster(config)
-        stats = broadcaster.broadcast(groups, text, image_path, task_name=task.name)
+        stats = broadcaster.broadcast(groups, text, image_path, task_name=task.name, immediate=immediate)
         
-        # 记录调度日志
+        # 记录日志
         exec_log.status = "success"
-        exec_log.message = f"scheduled={stats['scheduled']}, skipped={stats['skipped']}"
-        log.info("任务调度成功", **stats)
+        if immediate:
+            exec_log.message = f"sent={stats['sent']}, failed={stats['failed']}"
+            log.info("立即执行完成", **stats)
+        else:
+            exec_log.message = f"scheduled={stats['scheduled']}, skipped={stats['skipped']}"
+            log.info("任务调度成功", **stats)
         
     except Exception as e:
         # 记录失败日志
