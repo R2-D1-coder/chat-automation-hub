@@ -59,3 +59,4 @@ if exist "dist\chat-automation-hub.exe" (
 
 pause
 
+

@@ -26,6 +26,7 @@ class ScheduledTask:
     image_path: str = ""
     cron_expression: str = ""  # Cron 表达式
     enabled: bool = True
+    random_delay_minutes: Optional[int] = None  # 随机延时（分钟），None 表示使用配置文件的默认值
     created_at: str = ""
     updated_at: str = ""
     
@@ -78,10 +79,19 @@ class Database:
                     image_path TEXT DEFAULT '',
                     cron_expression TEXT NOT NULL,
                     enabled INTEGER DEFAULT 1,
+                    random_delay_minutes INTEGER DEFAULT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
             """)
+            
+            # 添加新列（如果不存在）
+            try:
+                conn.execute("ALTER TABLE scheduled_tasks ADD COLUMN random_delay_minutes INTEGER DEFAULT NULL")
+                conn.commit()
+            except sqlite3.OperationalError:
+                # 列已存在，忽略错误
+                pass
             
             # 执行日志表
             conn.execute("""
@@ -112,6 +122,7 @@ class Database:
                     "image_path": task.image_path,
                     "cron_expression": task.cron_expression,
                     "enabled": task.enabled,
+                    "random_delay_minutes": task.random_delay_minutes,
                 }
                 tasks_data.append(task_dict)
             
@@ -158,6 +169,7 @@ class Database:
                 image_path=json_task.get("image_path", ""),
                 cron_expression=json_task.get("cron_expression", ""),
                 enabled=json_task.get("enabled", True),
+                random_delay_minutes=json_task.get("random_delay_minutes"),
             )
             task.set_groups_list(json_task.get("groups", []))
             
@@ -172,10 +184,10 @@ class Database:
                 with self._get_conn() as conn:
                     conn.execute("""
                         UPDATE scheduled_tasks 
-                        SET groups=?, text=?, image_path=?, cron_expression=?, enabled=?, updated_at=?
+                        SET groups=?, text=?, image_path=?, cron_expression=?, enabled=?, random_delay_minutes=?, updated_at=?
                         WHERE id=?
                     """, (task.groups, task.text, task.image_path,
-                          task.cron_expression, int(task.enabled), task.updated_at, task.id))
+                          task.cron_expression, int(task.enabled), task.random_delay_minutes, task.updated_at, task.id))
                     conn.commit()
             else:
                 # 创建新任务
@@ -185,10 +197,10 @@ class Database:
                 with self._get_conn() as conn:
                     cursor = conn.execute("""
                         INSERT INTO scheduled_tasks 
-                        (name, groups, text, image_path, cron_expression, enabled, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        (name, groups, text, image_path, cron_expression, enabled, random_delay_minutes, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (task.name, task.groups, task.text, task.image_path, 
-                          task.cron_expression, int(task.enabled), task.created_at, task.updated_at))
+                          task.cron_expression, int(task.enabled), task.random_delay_minutes, task.created_at, task.updated_at))
                     conn.commit()
         
         # 删除 JSON 中不存在但数据库存在的任务（可选，这里不自动删除，保留手动创建的任务）
@@ -228,10 +240,10 @@ class Database:
         with self._get_conn() as conn:
             cursor = conn.execute("""
                 INSERT INTO scheduled_tasks 
-                (name, groups, text, image_path, cron_expression, enabled, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (name, groups, text, image_path, cron_expression, enabled, random_delay_minutes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (task.name, task.groups, task.text, task.image_path, 
-                  task.cron_expression, int(task.enabled), task.created_at, task.updated_at))
+                  task.cron_expression, int(task.enabled), task.random_delay_minutes, task.created_at, task.updated_at))
             conn.commit()
             task.id = cursor.lastrowid
         
@@ -246,10 +258,10 @@ class Database:
         with self._get_conn() as conn:
             conn.execute("""
                 UPDATE scheduled_tasks 
-                SET name=?, groups=?, text=?, image_path=?, cron_expression=?, enabled=?, updated_at=?
+                SET name=?, groups=?, text=?, image_path=?, cron_expression=?, enabled=?, random_delay_minutes=?, updated_at=?
                 WHERE id=?
             """, (task.name, task.groups, task.text, task.image_path,
-                  task.cron_expression, int(task.enabled), task.updated_at, task.id))
+                  task.cron_expression, int(task.enabled), task.random_delay_minutes, task.updated_at, task.id))
             conn.commit()
         
         # 同步更新 JSON 文件

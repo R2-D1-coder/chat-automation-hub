@@ -1,6 +1,44 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- 发送队列（主要位置） -->
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span>
+            <i class="bi bi-list-ol me-2"></i>发送队列
+            <span class="badge bg-primary ms-2" id="queue-count">0</span>
+        </span>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm me-2" onclick="clearQueue()">
+                <i class="bi bi-x-circle me-1"></i>清空队列
+            </button>
+            <a href="{{ url_for('queue_page') }}" class="btn btn-link btn-sm p-0">查看详情</a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 140px;">计划时间</th>
+                        <th style="width: 120px;">任务</th>
+                        <th style="width: 120px;">群名</th>
+                        <th>消息预览</th>
+                        <th style="width: 100px;">状态</th>
+                    </tr>
+                </thead>
+                <tbody id="queue-list-main">
+                    <tr>
+                        <td colspan="5" class="text-center py-3 text-muted">
+                            <i class="bi bi-hourglass-split me-1"></i>加载中...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <!-- 左侧：任务列表 -->
     <div class="col-lg-8">
@@ -52,11 +90,18 @@
                         </div>
                         
                         <div class="action-buttons">
+                            {% if immediate_run_enabled %}
                             <form action="{{ url_for('run_task', task_id=task.id) }}" method="post" class="d-inline">
                                 <button type="submit" class="btn btn-outline-primary btn-sm" title="立即执行">
                                     <i class="bi bi-play-fill"></i>
                                 </button>
                             </form>
+                            {% else %}
+                            <button type="button" class="btn btn-outline-primary btn-sm" title="立即执行（需要密码）" 
+                                    onclick="showPasswordModal({{ task.id }})">
+                                <i class="bi bi-play-fill"></i>
+                            </button>
+                            {% endif %}
                             <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-outline-secondary btn-sm" title="编辑">
                                 <i class="bi bi-pencil"></i>
                             </a>
@@ -124,24 +169,6 @@
             </div>
         </div>
         
-        <!-- 发送队列 -->
-        <div class="card mb-3">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <span>
-                    <i class="bi bi-list-ol me-1"></i>发送队列
-                    <span class="badge bg-primary ms-1" id="queue-count">0</span>
-                </span>
-                <a href="{{ url_for('queue_page') }}" class="btn btn-link btn-sm p-0">查看详情</a>
-            </div>
-            <div class="card-body p-0">
-                <div id="queue-list" style="max-height: 200px; overflow-y: auto;">
-                    <div class="text-center text-muted py-3">
-                        <i class="bi bi-hourglass-split me-1"></i>加载中...
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         <!-- 白名单群组 -->
         <div class="card mb-3">
             <div class="card-header bg-white">
@@ -189,10 +216,105 @@
         </div>
     </div>
 </div>
+
+<!-- 密码输入模态框 -->
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-lock me-2"></i>启用立即执行功能
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">请输入密码以启用任务的立即执行功能：</p>
+                <div class="mb-3">
+                    <label class="form-label">密码</label>
+                    <input type="password" class="form-control" id="passwordInput" placeholder="请输入密码" autocomplete="off">
+                    <div id="passwordError" class="text-danger small mt-2" style="display: none;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-wechat" onclick="verifyPassword()">
+                    <i class="bi bi-check-lg me-1"></i>验证
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+let pendingTaskId = null;
+
+function showPasswordModal(taskId) {
+    pendingTaskId = taskId;
+    const modalElement = document.getElementById('passwordModal');
+    const modal = new bootstrap.Modal(modalElement);
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordError').style.display = 'none';
+    modal.show();
+    
+    // 模态框显示后聚焦输入框
+    modalElement.addEventListener('shown.bs.modal', function () {
+        document.getElementById('passwordInput').focus();
+    }, { once: true });
+}
+
+function verifyPassword() {
+    const password = document.getElementById('passwordInput').value;
+    const errorDiv = document.getElementById('passwordError');
+    
+    if (!password) {
+        errorDiv.textContent = '请输入密码';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    fetch('/api/verify-password', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: password })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // 关闭模态框
+            const modal = bootstrap.Modal.getInstance(document.getElementById('passwordModal'));
+            modal.hide();
+            
+            // 重新加载页面以启用按钮
+            location.reload();
+        } else {
+            errorDiv.textContent = data.message || '密码错误';
+            errorDiv.style.display = 'block';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordInput').focus();
+        }
+    })
+    .catch(e => {
+        errorDiv.textContent = '验证失败，请重试';
+        errorDiv.style.display = 'block';
+    });
+}
+
+// 支持回车键提交
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('passwordInput');
+    if (passwordInput) {
+        passwordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyPassword();
+            }
+        });
+    }
+});
+
 function controlScheduler(action) {
     fetch(`/api/scheduler/${action}`, { method: 'POST' })
         .then(r => r.json())
@@ -204,52 +326,95 @@ function controlScheduler(action) {
 }
 
 function loadQueue() {
-    fetch('/api/queue')
+    fetch('/api/queue?include_completed=false')
         .then(r => r.json())
         .then(data => {
             document.getElementById('queue-count').textContent = data.pending_count;
-            renderQueueList(data.actions);
+            renderQueueListMain(data.actions);
         })
         .catch(e => console.error('加载队列失败:', e));
 }
 
-function renderQueueList(actions) {
-    const container = document.getElementById('queue-list');
+function renderQueueListMain(actions) {
+    const tbody = document.getElementById('queue-list-main');
     
     if (actions.length === 0) {
-        container.innerHTML = '<div class="text-center text-muted py-3"><i class="bi bi-inbox me-1"></i>队列为空</div>';
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox me-1"></i>队列为空
+                </td>
+            </tr>
+        `;
         return;
     }
     
-    container.innerHTML = '<ul class="list-group list-group-flush">' + 
-        actions.slice(0, 5).map(action => {
-            const statusIcon = {
-                'pending': 'hourglass-split text-info',
-                'running': 'play-fill text-warning',
-                'success': 'check-circle-fill text-success',
-                'failed': 'x-circle-fill text-danger'
-            }[action.status] || 'question-circle';
-            
-            return `<li class="list-group-item py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="bi bi-${statusIcon} me-1"></i>
-                        <span class="small">${action.group_name}</span>
-                    </div>
-                    <small class="text-muted">${action.scheduled_time.split(' ')[1]}</small>
-                </div>
-            </li>`;
-        }).join('') + '</ul>';
+    tbody.innerHTML = actions.slice(0, 20).map(action => {
+        const statusBadge = getStatusBadge(action.status);
+        const hasImage = action.image_path ? '<i class="bi bi-image text-muted ms-1" title="含图片"></i>' : '';
+        
+        return `
+            <tr class="${action.status === 'running' ? 'table-warning' : ''}">
+                <td>
+                    <i class="bi bi-clock me-1"></i>
+                    ${action.scheduled_time.split(' ')[1]}
+                    <br>
+                    <small class="text-muted">${action.scheduled_time.split(' ')[0]}</small>
+                </td>
+                <td>
+                    <span class="badge bg-secondary">${action.task_name}</span>
+                </td>
+                <td>
+                    <span class="group-tag">${action.group_name}</span>
+                </td>
+                <td>
+                    <span class="text-truncate d-inline-block" style="max-width: 300px;" title="${action.text}">
+                        ${action.text}
+                    </span>
+                    ${hasImage}
+                </td>
+                <td>${statusBadge}</td>
+            </tr>
+        `;
+    }).join('');
     
-    if (actions.length > 5) {
-        container.innerHTML += `<div class="text-center text-muted small py-1">还有 ${actions.length - 5} 个...</div>`;
+    if (actions.length > 20) {
+        tbody.innerHTML += `
+            <tr>
+                <td colspan="5" class="text-center text-muted small py-2">
+                    还有 ${actions.length - 20} 个任务...
+                </td>
+            </tr>
+        `;
     }
 }
 
-// 页面加载时获取队列，并每 5 秒刷新一次
+function getStatusBadge(status) {
+    const map = {
+        'pending': '<span class="badge bg-info"><i class="bi bi-hourglass-split me-1"></i>等待</span>',
+        'running': '<span class="badge bg-warning"><i class="bi bi-play-fill me-1"></i>执行中</span>',
+        'success': '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>成功</span>',
+        'failed': '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>失败</span>'
+    };
+    return map[status] || status;
+}
+
+function clearQueue() {
+    if (!confirm('确定要清空所有待执行的任务吗？正在执行的不会被中断。')) return;
+    
+    fetch('/api/queue/clear', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.message);
+            loadQueue();
+        })
+        .catch(e => alert('操作失败: ' + e));
+}
+
+// 页面加载时获取队列，并每 3 秒刷新一次
 document.addEventListener('DOMContentLoaded', function() {
     loadQueue();
-    setInterval(loadQueue, 5000);
+    setInterval(loadQueue, 3000);
 });
 </script>
 {% endblock %}

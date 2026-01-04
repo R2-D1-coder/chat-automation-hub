@@ -114,6 +114,20 @@
                         </div>
                     </div>
                     
+                    <!-- 随机延时 -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-shuffle me-1"></i>随机延时（分钟，可选）
+                        </label>
+                        <input type="number" class="form-control" name="random_delay_minutes" 
+                               value="{{ task.random_delay_minutes if task.random_delay_minutes is not none else '' }}" 
+                               placeholder="留空使用默认值（30分钟）" min="0" max="1440">
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            任务执行时，发送时间会在 0 到指定分钟数之间随机分布。留空则使用全局默认值（config.json 中的 random_delay_minutes）。
+                        </div>
+                    </div>
+                    
                     <!-- 启用状态 -->
                     <div class="mb-4">
                         <div class="form-check form-switch">
