@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
 
 # 添加项目根目录到路径
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -46,12 +46,14 @@ def index():
     logs = db.get_logs(limit=10)
     status = get_scheduler_status()
     allowed_groups = get_allowed_groups()
+    immediate_run_enabled = session.get("immediate_run_enabled", False)
     
     return render_template("index.html", 
                            tasks=tasks, 
                            logs=logs, 
                            status=status,
-                           allowed_groups=allowed_groups)
+                           allowed_groups=allowed_groups,
+                           immediate_run_enabled=immediate_run_enabled)
 
 
 @app.route("/task/new", methods=["GET", "POST"])
@@ -61,12 +63,17 @@ def new_task():
     status = get_scheduler_status()
     
     if request.method == "POST":
+        # 处理随机延时（空字符串或 None 表示使用默认值）
+        random_delay_str = request.form.get("random_delay_minutes", "").strip()
+        random_delay_minutes = int(random_delay_str) if random_delay_str else None
+        
         task = ScheduledTask(
             name=request.form.get("name", "").strip(),
             text=request.form.get("text", ""),
             image_path=request.form.get("image_path", ""),
             cron_expression=request.form.get("cron_expression", "").strip(),
-            enabled=request.form.get("enabled") == "on"
+            enabled=request.form.get("enabled") == "on",
+            random_delay_minutes=random_delay_minutes
         )
         
         # 处理群组选择
@@ -116,6 +123,10 @@ def edit_task(task_id: int):
         task.text = request.form.get("text", "")
         task.cron_expression = request.form.get("cron_expression", "").strip()
         task.enabled = request.form.get("enabled") == "on"
+        
+        # 处理随机延时（空字符串或 None 表示使用默认值）
+        random_delay_str = request.form.get("random_delay_minutes", "").strip()
+        task.random_delay_minutes = int(random_delay_str) if random_delay_str else None
         
         # 处理群组选择
         selected_groups = request.form.getlist("groups")
@@ -179,9 +190,28 @@ def toggle_task(task_id: int):
     return redirect(url_for("index"))
 
 
+@app.route("/api/verify-password", methods=["POST"])
+def api_verify_password():
+    """验证立即执行密码"""
+    data = request.get_json()
+    password = data.get("password", "")
+    
+    # 默认密码：525611
+    if password == "525611":
+        session["immediate_run_enabled"] = True
+        return jsonify({"success": True, "message": "密码验证成功，立即执行功能已启用"})
+    else:
+        return jsonify({"success": False, "message": "密码错误"}), 401
+
+
 @app.route("/task/<int:task_id>/run", methods=["POST"])
 def run_task(task_id: int):
     """立即执行任务（跳过队列，直接发送）"""
+    # 检查密码验证状态
+    if not session.get("immediate_run_enabled", False):
+        flash("请先输入密码启用立即执行功能", "error")
+        return redirect(url_for("index"))
+    
     task = db.get_task(task_id)
     if task:
         # 异步执行（避免阻塞），immediate=True 跳过队列直接发送

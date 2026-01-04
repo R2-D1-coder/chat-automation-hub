@@ -4,7 +4,7 @@
     "max_per_minute": 10,
     "min_send_interval_sec": 10,
     "screenshot_on_error": true,
-    "random_delay_minutes": 0,
+    "random_delay_minutes": 30,
     "min_delay_between_groups_sec": 120
   },
   "safety": {

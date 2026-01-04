@@ -69,7 +69,10 @@ def execute_task(task_id: int, immediate: bool = False):
         
         # 执行广播
         broadcaster = WeChatBroadcaster(config)
-        stats = broadcaster.broadcast(groups, text, image_path, task_name=task.name, immediate=immediate)
+        # 使用任务的随机延时（如果设置了），否则使用配置文件的默认值
+        task_random_delay = task.random_delay_minutes
+        stats = broadcaster.broadcast(groups, text, image_path, task_name=task.name, 
+                                     immediate=immediate, random_delay_minutes=task_random_delay)
         
         # 记录日志
         exec_log.status = "success"

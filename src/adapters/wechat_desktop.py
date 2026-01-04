@@ -326,7 +326,8 @@ class WeChatBroadcaster:
             raise WhitelistError(f"以下群不在白名单中: {invalid}")
     
     def broadcast(self, groups: List[str], text: str, image_path: Optional[Path] = None, 
-                  task_name: str = "手动任务", immediate: bool = False) -> dict:
+                  task_name: str = "手动任务", immediate: bool = False, 
+                  random_delay_minutes: Optional[int] = None) -> dict:
         """
         广播消息到多个群
         
@@ -336,6 +337,7 @@ class WeChatBroadcaster:
             image_path: 可选的图片路径
             task_name: 任务名称
             immediate: 是否立即发送（跳过队列，用于测试）
+            random_delay_minutes: 随机延时（分钟），None 表示使用配置文件的默认值
             
         Returns:
             执行结果统计
@@ -400,8 +402,9 @@ class WeChatBroadcaster:
             log.info("没有需要发送的群")
             return {"scheduled": 0, "skipped": len(groups), "sent": 0, "failed": 0}
         
-        # 6. 获取配置
-        random_delay_minutes = self.config.get("wechat", {}).get("random_delay_minutes", 0)
+        # 6. 获取随机延时配置（优先使用任务级配置，否则使用全局配置）
+        if random_delay_minutes is None:
+            random_delay_minutes = self.config.get("wechat", {}).get("random_delay_minutes", 30)
         
         # 7. 加入全局发送队列
         queue = get_send_queue()
