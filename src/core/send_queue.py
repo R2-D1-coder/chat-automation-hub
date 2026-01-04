@@ -211,6 +211,12 @@ class SendQueue:
         self._executor_thread.start()
         log.info("发送队列执行器已启动")
     
+    def ensure_executor_running(self):
+        """确保执行器正在运行（如果未运行则启动）"""
+        if not self._running or not (self._executor_thread and self._executor_thread.is_alive()):
+            log.warn("执行器未运行，正在重新启动...")
+            self.start_executor()
+    
     def stop_executor(self):
         """停止执行器"""
         self._running = False
@@ -226,9 +232,13 @@ class SendQueue:
                 if action:
                     self._execute_action(action)
                 else:
+                    # 每10秒输出一次调试信息（如果有待处理任务）
+                    pending_count = self.get_pending_count()
+                    if pending_count > 0:
+                        log.debug(f"执行器运行中，待处理任务数: {pending_count}")
                     time.sleep(1)  # 无任务时休眠
             except Exception as e:
-                log.error(f"执行器错误: {e}")
+                log.error(f"执行器错误: {e}", exc_info=True)
                 time.sleep(5)
     
     def _get_next_action(self) -> Optional[SendAction]:
@@ -236,8 +246,12 @@ class SendQueue:
         now = datetime.now()
         
         with self._lock:
-            for action in self._queue:
-                if action.status == "pending" and action.scheduled_time <= now:
+            # 按时间排序，优先处理最早的任务
+            pending_actions = [a for a in self._queue if a.status == "pending"]
+            pending_actions.sort(key=lambda x: x.scheduled_time)
+            
+            for action in pending_actions:
+                if action.scheduled_time <= now:
                     action.status = "running"
                     return action
         
