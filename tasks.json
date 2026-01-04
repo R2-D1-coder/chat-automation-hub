@@ -25,7 +25,7 @@
       ],
       "text": "张老板，一切正常！",
       "image_path": "",
-      "cron_expression": "53 23 * * 0,1,2,3,4,5,6",
+      "cron_expression": "1 0 * * 0,1,2,3,4,5,6",
       "enabled": 1,
       "random_delay_minutes": 1
     },

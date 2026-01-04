@@ -87,7 +87,9 @@ def execute_task(task_id: int, immediate: bool = False):
         # 记录失败日志
         exec_log.status = "failed"
         exec_log.message = str(e)
-        log.error("任务执行失败", error=str(e))
+        log.error("任务执行失败", error=str(e), exc_info=True)
+        import traceback
+        log.error(f"任务执行异常堆栈: {traceback.format_exc()}")
     
     finally:
         db.add_log(exec_log)
