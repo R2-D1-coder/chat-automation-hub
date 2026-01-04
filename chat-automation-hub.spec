@@ -7,8 +7,8 @@ PyInstaller 打包配置文件
 import sys
 from pathlib import Path
 
-# 项目根目录
-PROJECT_ROOT = Path(SPECPATH)
+# 项目根目录（spec 文件所在目录）
+PROJECT_ROOT = Path(SPECPATH) if 'SPECPATH' in globals() else Path(__file__).parent
 
 # 分析主程序
 a = Analysis(
