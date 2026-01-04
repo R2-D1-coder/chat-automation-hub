@@ -19,13 +19,33 @@ python --version
 echo.
 
 echo [2/3] 正在安装依赖包（首次安装约需 2-5 分钟）...
-pip install -r requirements.txt -q
+echo.
+echo 正在升级 pip、setuptools 和 wheel...
+python -m pip install --upgrade pip setuptools wheel --quiet --disable-pip-version-check >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [错误] 依赖安装失败，请检查网络连接
+    echo [警告] pip 升级失败，将尝试继续安装...
+) else (
+    echo [完成] pip 工具升级成功
+)
+echo.
+echo 正在安装项目依赖...
+echo 提示: 如果看到 "invalid distribution" 警告，通常不影响安装...
+python -m pip install -r requirements.txt --disable-pip-version-check --no-warn-script-location
+if %errorlevel% neq 0 (
+    echo.
+    echo [错误] 依赖安装失败，请检查：
+    echo   1. 网络连接是否正常
+    echo   2. 是否有足够的磁盘空间
+    echo   3. Python 环境是否正常
+    echo.
+    echo 提示: 如果遇到 "invalid distribution" 警告，可尝试：
+    echo   python -m pip install --upgrade pip setuptools wheel
+    echo   然后重新运行此安装脚本
     pause
     exit /b 1
 )
-echo 依赖安装完成！
+echo.
+echo [完成] 依赖安装成功！
 echo.
 
 echo [3/3] 创建必要目录...
