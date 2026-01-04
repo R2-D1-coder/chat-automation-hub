@@ -20,8 +20,12 @@ echo.
 
 echo [2/3] 正在安装依赖包（首次安装约需 2-5 分钟）...
 echo.
+REM 使用清华大学镜像源加速下载
+set PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+echo [提示] 使用清华大学镜像源加速下载
+echo.
 echo 正在升级 pip、setuptools 和 wheel...
-python -m pip install --upgrade pip setuptools wheel --quiet --disable-pip-version-check >nul 2>&1
+python -m pip install --upgrade pip setuptools wheel -i %PIP_INDEX_URL% --quiet --disable-pip-version-check >nul 2>&1
 if %errorlevel% neq 0 (
     echo [警告] pip 升级失败，将尝试继续安装...
 ) else (
@@ -30,7 +34,7 @@ if %errorlevel% neq 0 (
 echo.
 echo 正在安装项目依赖...
 echo 提示: 如果看到 "invalid distribution" 警告，通常不影响安装...
-python -m pip install -r requirements.txt --disable-pip-version-check --no-warn-script-location
+python -m pip install -r requirements.txt -i %PIP_INDEX_URL% --disable-pip-version-check --no-warn-script-location
 if %errorlevel% neq 0 (
     echo.
     echo [错误] 依赖安装失败，请检查：
@@ -39,7 +43,7 @@ if %errorlevel% neq 0 (
     echo   3. Python 环境是否正常
     echo.
     echo 提示: 如果遇到 "invalid distribution" 警告，可尝试：
-    echo   python -m pip install --upgrade pip setuptools wheel
+    echo   python -m pip install --upgrade pip setuptools wheel -i %PIP_INDEX_URL%
     echo   然后重新运行此安装脚本
     pause
     exit /b 1
