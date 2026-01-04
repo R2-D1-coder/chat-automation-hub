@@ -26,6 +26,9 @@ env/
 output/
 *.db
 
+# 任务配置文件（不同环境可能不同，不纳入版本控制）
+tasks.json
+
 # 错误截图
 wechat_error_*.png
 
