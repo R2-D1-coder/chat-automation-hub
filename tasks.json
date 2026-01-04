@@ -20,13 +20,14 @@
     {
       "name": "心跳包",
       "groups": [
+        "家人们",
         "心跳包"
       ],
       "text": "张老板，一切正常！",
       "image_path": "",
-      "cron_expression": "every 6h",
+      "cron_expression": "53 23 * * 0,1,2,3,4,5,6",
       "enabled": 1,
-      "random_delay_minutes": null
+      "random_delay_minutes": 1
     },
     {
       "name": "个人测试",
