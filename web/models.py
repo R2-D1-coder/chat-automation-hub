@@ -6,8 +6,14 @@ from pathlib import Path
 from typing import List, Optional
 from dataclasses import dataclass, asdict
 
-# 数据库路径
-DB_PATH = Path(__file__).parent.parent / "output" / "scheduler.db"
+# 项目根目录
+PROJECT_ROOT = Path(__file__).parent.parent
+
+# 任务配置文件路径（可以通过 Git 同步）
+TASKS_JSON_PATH = PROJECT_ROOT / "tasks.json"
+
+# 数据库路径（用于执行日志，不通过 Git 同步）
+DB_PATH = PROJECT_ROOT / "output" / "scheduler.db"
 
 
 @dataclass
@@ -90,6 +96,103 @@ class Database:
             """)
             conn.commit()
     
+    # ========== JSON 文件同步 ==========
+    
+    def _save_tasks_to_json(self):
+        """保存所有任务到 JSON 文件"""
+        try:
+            tasks = self.get_all_tasks()
+            # 转换为字典列表，移除 id（JSON 中不需要，数据库会自动生成）
+            tasks_data = []
+            for task in tasks:
+                task_dict = {
+                    "name": task.name,
+                    "groups": task.get_groups_list(),  # 转换为列表
+                    "text": task.text,
+                    "image_path": task.image_path,
+                    "cron_expression": task.cron_expression,
+                    "enabled": task.enabled,
+                }
+                tasks_data.append(task_dict)
+            
+            # 保存到 JSON 文件
+            with open(TASKS_JSON_PATH, "w", encoding="utf-8") as f:
+                json.dump({"tasks": tasks_data}, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            # JSON 保存失败不应该影响数据库操作
+            print(f"[警告] 保存任务到 JSON 文件失败: {e}")
+    
+    def _load_tasks_from_json(self) -> List[dict]:
+        """从 JSON 文件加载任务配置"""
+        if not TASKS_JSON_PATH.exists():
+            return []
+        
+        try:
+            with open(TASKS_JSON_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get("tasks", [])
+        except Exception as e:
+            print(f"[警告] 从 JSON 文件加载任务失败: {e}")
+            return []
+    
+    def sync_from_json(self):
+        """从 JSON 文件同步任务到数据库（启动时调用）"""
+        json_tasks = self._load_tasks_from_json()
+        if not json_tasks:
+            return
+        
+        db_tasks = self.get_all_tasks()
+        # 创建任务名称到任务的映射
+        db_tasks_by_name = {task.name: task for task in db_tasks}
+        
+        # 同步 JSON 中的任务到数据库
+        for json_task in json_tasks:
+            task_name = json_task.get("name", "")
+            if not task_name:
+                continue
+            
+            # 创建任务对象
+            task = ScheduledTask(
+                name=task_name,
+                text=json_task.get("text", ""),
+                image_path=json_task.get("image_path", ""),
+                cron_expression=json_task.get("cron_expression", ""),
+                enabled=json_task.get("enabled", True),
+            )
+            task.set_groups_list(json_task.get("groups", []))
+            
+            # 如果数据库中存在同名任务，更新它；否则创建新任务
+            if task_name in db_tasks_by_name:
+                # 更新现有任务
+                existing_task = db_tasks_by_name[task_name]
+                task.id = existing_task.id
+                task.created_at = existing_task.created_at
+                # 只更新数据库，不更新 JSON（避免循环）
+                task.updated_at = datetime.now().isoformat()
+                with self._get_conn() as conn:
+                    conn.execute("""
+                        UPDATE scheduled_tasks 
+                        SET groups=?, text=?, image_path=?, cron_expression=?, enabled=?, updated_at=?
+                        WHERE id=?
+                    """, (task.groups, task.text, task.image_path,
+                          task.cron_expression, int(task.enabled), task.updated_at, task.id))
+                    conn.commit()
+            else:
+                # 创建新任务
+                now = datetime.now().isoformat()
+                task.created_at = now
+                task.updated_at = now
+                with self._get_conn() as conn:
+                    cursor = conn.execute("""
+                        INSERT INTO scheduled_tasks 
+                        (name, groups, text, image_path, cron_expression, enabled, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (task.name, task.groups, task.text, task.image_path, 
+                          task.cron_expression, int(task.enabled), task.created_at, task.updated_at))
+                    conn.commit()
+        
+        # 删除 JSON 中不存在但数据库存在的任务（可选，这里不自动删除，保留手动创建的任务）
+    
     # ========== 任务操作 ==========
     
     def get_all_tasks(self) -> List[ScheduledTask]:
@@ -130,7 +233,11 @@ class Database:
             """, (task.name, task.groups, task.text, task.image_path, 
                   task.cron_expression, int(task.enabled), task.created_at, task.updated_at))
             conn.commit()
-            return cursor.lastrowid
+            task.id = cursor.lastrowid
+        
+        # 同步更新 JSON 文件
+        self._save_tasks_to_json()
+        return task.id
     
     def update_task(self, task: ScheduledTask):
         """更新任务"""
@@ -144,12 +251,18 @@ class Database:
             """, (task.name, task.groups, task.text, task.image_path,
                   task.cron_expression, int(task.enabled), task.updated_at, task.id))
             conn.commit()
+        
+        # 同步更新 JSON 文件
+        self._save_tasks_to_json()
     
     def delete_task(self, task_id: int):
         """删除任务"""
         with self._get_conn() as conn:
             conn.execute("DELETE FROM scheduled_tasks WHERE id = ?", (task_id,))
             conn.commit()
+        
+        # 同步更新 JSON 文件
+        self._save_tasks_to_json()
     
     def toggle_task(self, task_id: int, enabled: bool):
         """启用/禁用任务"""
@@ -159,6 +272,9 @@ class Database:
                 (int(enabled), datetime.now().isoformat(), task_id)
             )
             conn.commit()
+        
+        # 同步更新 JSON 文件
+        self._save_tasks_to_json()
     
     # ========== 日志操作 ==========
     

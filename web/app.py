@@ -345,6 +345,13 @@ def to_json_filter(value):
 
 def create_app():
     """创建并配置应用"""
+    # 从 JSON 文件同步任务到数据库（启动时）
+    try:
+        db.sync_from_json()
+        print("[初始化] 已从 tasks.json 同步任务配置")
+    except Exception as e:
+        print(f"[警告] 从 JSON 文件同步任务失败: {e}")
+    
     # 初始化调度器
     init_scheduler()
     start_scheduler()

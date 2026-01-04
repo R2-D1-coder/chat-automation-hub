@@ -71,6 +71,9 @@ start_web.bat
 
 # 3. 浏览器访问
 http://localhost:5000
+
+# 4. 重启服务（需要重启时运行）
+start_web.bat
 ```
 
 ### ⚠️ 使用前提（重要）
