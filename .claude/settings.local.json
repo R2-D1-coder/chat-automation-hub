@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(git commit -m \"$\\(cat <<''EOF''\n添加任务配置 JSON 文件同步功能，支持通过 Git 同步任务配置\n\n- 新增 tasks.json 文件用于存储任务配置\n- models.py 添加 JSON 文件读写和同步逻辑\n- 应用启动时自动从 tasks.json 同步任务到数据库\n- 任务增删改时自动更新 tasks.json 文件\n- 更新 README 添加重启服务说明\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(.venvScriptspip.exe install winrt-Windows.UI.Notifications winrt-Windows.Foundation)",
+      "Bash(.venv/Scripts/pip.exe install:*)",
+      "Bash(.venv/Scripts/python.exe -c \"import winrt; print\\(dir\\(winrt\\)\\)\")",
+      "Bash(.venv/Scripts/pip.exe list:*)",
+      "Bash(.venv/Scripts/python.exe -c \"from winrt.windows.ui.notifications.management import UserNotificationListener; print\\(''OK''\\)\")",
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(cat:*)",
+      "Bash(88config --help:*)",
+      "Bash(ls:*)",
+      "Bash(tasklist:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)"
     ]
   }
 }

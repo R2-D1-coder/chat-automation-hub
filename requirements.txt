@@ -9,4 +9,9 @@ Flask>=3.0.0
 APScheduler>=3.10.0
 uiautomation>=2.0.0
 PyInstaller>=6.0.0
+winrt-Windows.UI.Notifications>=1.0.0
+winrt-Windows.UI.Notifications.Management>=1.0.0
+winrt-Windows.Foundation>=1.0.0
+winrt-Windows.Foundation.Collections>=1.0.0
+winrt-Windows.ApplicationModel>=1.0.0
 

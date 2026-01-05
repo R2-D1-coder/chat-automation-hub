@@ -403,13 +403,68 @@ chat-automation-hub/
 
 ### UI Inspector
 
-检查 Windows UI 元素，帮助调试：
+检查 Windows UI 元素，获取窗口控件信息，帮助调试自动化脚本。
+
+#### 运行方式
 
 ```powershell
-python inspect_ui.py        # 交互模式
-python inspect_ui.py -m     # 鼠标追踪模式
-python inspect_ui.py -l     # 列出所有窗口
+# 进入项目目录并激活虚拟环境
+cd c:\Users\Administrator\Documents\GitHub\chat-automation-hub
+.venv\Scripts\activate
+
+# 运行脚本
+python inspect_ui.py              # 交互模式
+python inspect_ui.py -m           # 鼠标追踪模式（推荐）
+python inspect_ui.py -l           # 列出所有窗口
+python inspect_ui.py -w           # 直接检查微信窗口
 ```
+
+#### 命令行参数
+
+| 参数 | 说明 |
+|------|------|
+| `--mouse` 或 `-m` | **鼠标追踪模式**：把鼠标移到目标控件上，实时显示元素信息 |
+| `--list` 或 `-l` | 列出所有顶层窗口 |
+| `--wechat` 或 `-w` | 直接检查微信主窗口 |
+| `--help` 或 `-h` | 显示帮助信息 |
+
+#### 交互模式命令
+
+进入交互模式后可用的命令：
+
+| 命令 | 说明 |
+|------|------|
+| `m` | 进入鼠标追踪模式 |
+| `w` | 检查微信窗口 |
+| `l` | 列出所有窗口 |
+| `f <名称>` | 按名称模糊查找窗口（如 `f 飞书`） |
+| `t <名称>` | 打印指定窗口的控件树（如 `t 合约地址`） |
+| `q` | 退出 |
+
+#### 使用示例
+
+```powershell
+# 1. 查找飞书相关窗口
+python inspect_ui.py
+> f 飞书
+
+# 2. 查看某窗口的控件树
+> t 所有群<合约地址>监控
+
+# 3. 鼠标追踪模式 - 把鼠标移到目标元素上查看信息
+> m
+# 按 Ctrl+C 退出追踪模式
+```
+
+#### 输出信息说明
+
+工具会输出以下信息，可用于构造 UI Automation locator：
+
+- **ControlType**：控件类型（如 Window、Button、Edit）
+- **ClassName**：窗口类名（如 Chrome_WidgetWin_1）
+- **Name**：控件名称/标题
+- **AutomationId**：自动化 ID
+- **Rect**：控件位置和大小
 
 ### 独立窗口测试
 

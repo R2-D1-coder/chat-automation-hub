@@ -18,6 +18,10 @@ from web.scheduler import (
     execute_task, reload_all_jobs
 )
 from src.core.config import load_config
+from src.adapters.feishu_monitor import (
+    init_feishu_monitor, start_feishu_monitor, stop_feishu_monitor,
+    get_feishu_monitor
+)
 
 # 创建 Flask 应用
 app = Flask(__name__)
@@ -309,10 +313,48 @@ def api_clear_queue():
 def api_clear_completed():
     """清理已完成的动作"""
     from src.core.send_queue import get_send_queue
-    
+
     queue = get_send_queue()
     queue.clear_completed()
     return jsonify({"success": True, "message": "已清理完成的动作"})
+
+
+# ========== 飞书监听 API ==========
+
+@app.route("/api/feishu/status")
+def api_feishu_status():
+    """获取飞书监听状态"""
+    monitor = get_feishu_monitor()
+    if monitor:
+        return jsonify(monitor.get_status())
+    return jsonify({"enabled": False, "running": False, "error": "未初始化"})
+
+
+@app.route("/api/feishu/start", methods=["POST"])
+def api_feishu_start():
+    """启动飞书监听"""
+    monitor = get_feishu_monitor()
+    if not monitor:
+        return jsonify({"success": False, "message": "飞书监听未初始化"}), 400
+
+    if monitor.running:
+        return jsonify({"success": True, "message": "飞书监听已在运行"})
+
+    ok = start_feishu_monitor()
+    if ok:
+        return jsonify({"success": True, "message": "飞书监听已启动"})
+    return jsonify({"success": False, "message": "启动失败"}), 500
+
+
+@app.route("/api/feishu/stop", methods=["POST"])
+def api_feishu_stop():
+    """停止飞书监听"""
+    monitor = get_feishu_monitor()
+    if not monitor:
+        return jsonify({"success": False, "message": "飞书监听未初始化"}), 400
+
+    stop_feishu_monitor()
+    return jsonify({"success": True, "message": "飞书监听已停止"})
 
 
 # ========== 模板过滤器 ==========
@@ -384,10 +426,27 @@ def create_app():
         print("[初始化] 已从 tasks.json 同步任务配置")
     except Exception as e:
         print(f"[警告] 从 JSON 文件同步任务失败: {e}")
-    
+
     # 初始化调度器
     init_scheduler()
     start_scheduler()
+
+    # 初始化飞书监听
+    try:
+        config = load_config()
+        feishu_config = config.get("feishu_monitor", {})
+        if feishu_config.get("enabled", False):
+            init_feishu_monitor(feishu_config)
+            ok = start_feishu_monitor()
+            if ok:
+                print("[初始化] 飞书通知监听已启动")
+            else:
+                print("[警告] 飞书通知监听启动失败")
+        else:
+            print("[初始化] 飞书通知监听已禁用")
+    except Exception as e:
+        print(f"[警告] 飞书监听初始化失败: {e}")
+
     return app
 
 
