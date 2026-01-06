@@ -40,7 +40,7 @@
       "消息同步（测试）",
       "所有群<合约地址>监控"
     ],
-    "dedupe_seconds": 600,
+    "dedupe_seconds": 5,
     "telegram": {
       "enabled": true,
       "api_id": "11876733",
