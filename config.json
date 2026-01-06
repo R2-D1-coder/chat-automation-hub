@@ -47,6 +47,11 @@
       "api_hash": "77f852c41e130ea83bac7674b4160d36",
       "session": "1BVtsOIIBu3tqzGb9m2b7iOCoaZv0pr9pI3qvabHv-FYHgk0R8kz30ql96p6lMSYoZagqGQCMG0WD8owfDEhaXazC-Ndt3qe_i-UkxqzBVqwhokl5zsZlBDfF_bPnPWyBki9Kf6PcjThRRmLwrOGnQr1sG4vyg2qYhrFobi1-WsYDqQE0w7HYwVQLSXXJV_iWTo9ZbI2fipqovdRKET0kWxV583xVfVHOaUejB80Sz2LnPyX2LcqamaLZmYaZ_ZUoxeShWN2jMJiv3IjfEyWe5kkgHfFEUT14lptez-HBu-P_64HUggQXveR0ZwoSQnA8CgpjrAr9s39Y1KnOrLRdcoy7-0-0bjU=",
       "chat": "-1003215157978"
+    },
+    "heartbeat": {
+      "enabled": true,
+      "chat": "-5292067715",
+      "message": "一切正常"
     }
   }
 }

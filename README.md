@@ -529,6 +529,45 @@ Get-Process python* -ErrorAction SilentlyContinue | Stop-Process -Force
 python run_web.py
 ```
 
+### 6. 获取 Telegram 频道/群组 ID
+
+心跳包或消息转发需要 Telegram 频道 ID，可通过以下脚本获取：
+
+```python
+# get_telegram_channel_id.py
+import asyncio
+from telethon import TelegramClient
+from telethon.sessions import StringSession
+
+# 从 config.json 复制这些值
+session = 'YOUR_SESSION_STRING'
+api_id = 12345678
+api_hash = 'your_api_hash'
+
+async def main():
+    client = TelegramClient(StringSession(session), api_id, api_hash)
+    await client.connect()
+
+    print("频道/群组列表：")
+    async for dialog in client.iter_dialogs(limit=50):
+        print(f"  {dialog.name}: {dialog.id}")
+
+    await client.disconnect()
+
+asyncio.run(main())
+```
+
+运行后会输出类似：
+
+```text
+频道/群组列表：
+  sol监控: -1003215157978
+  代币消息转发测试: -1001234567890
+  ...
+```
+
+将 ID（如 `-1003215157978`）填入 `config.json` 的 `chat` 字段即可。
+
 ---
 
 ## 🔒 安全机制

@@ -294,6 +294,43 @@ class TelegramForwarder:
             logger.error(f"Telegram 发送失败: {e}")
             return False
 
+    async def send_to_target_async(self, text: str, target: str) -> bool:
+        """异步发送消息到指定目标"""
+        if not self._client:
+            return False
+
+        try:
+            if not self._client.is_connected():
+                await self._client.connect()
+
+            resolved = await self._resolve_target(target)
+            if not resolved:
+                logger.error(f"未找到 Telegram 目标: {target}")
+                return False
+
+            await self._client.send_message(resolved, text)
+            logger.info(f"已发送到 Telegram: {target}")
+            return True
+        except Exception as e:
+            logger.error(f"Telegram 发送失败: {e}")
+            return False
+
+    def send_to_target(self, text: str, target: str) -> bool:
+        """同步发送消息到指定目标（线程安全）"""
+        if not self.enabled or not self._client:
+            return False
+
+        if self._loop is None or self._loop.is_closed():
+            logger.error("Telegram event loop 未运行")
+            return False
+
+        try:
+            future = asyncio.run_coroutine_threadsafe(self.send_to_target_async(text, target), self._loop)
+            return future.result(timeout=30)
+        except Exception as e:
+            logger.error(f"Telegram 发送异常: {e}")
+            return False
+
     def send(self, text: str) -> bool:
         """同步发送消息（线程安全）"""
         if not self.enabled or not self._client:
@@ -372,6 +409,14 @@ class FeishuMonitor:
         tg_config = config.get("telegram", {})
         self.telegram = TelegramForwarder(tg_config)
 
+        # 心跳包配置
+        hb_config = config.get("heartbeat", {})
+        self.heartbeat_enabled = hb_config.get("enabled", False)
+        self.heartbeat_chat = hb_config.get("chat", "")
+        self.heartbeat_message = hb_config.get("message", "一切正常")
+        self._heartbeat_thread = None
+        self._last_heartbeat_slot = None  # 记录上次发送的时间槽（避免重复发送）
+
         # 状态
         self.seen_notifications: Dict[tuple, float] = {}
         self.known_windows: Dict[int, float] = {}
@@ -400,6 +445,45 @@ class FeishuMonitor:
 
         # 外部回调（可选）
         self.on_notification: Optional[Callable[[str, str, str], None]] = None
+
+    def _heartbeat_loop(self):
+        """心跳包发送线程：整点和半点发送"""
+        logger.info("心跳包线程已启动")
+        while self.running:
+            try:
+                now = datetime.now()
+                minute = now.minute
+                # 检查是否是整点或半点（分钟为0或30）
+                is_heartbeat_time = minute == 0 or minute == 30
+                current_slot = (now.hour, minute // 30)  # 用(小时, 0或1)标识时间槽
+
+                if is_heartbeat_time and current_slot != self._last_heartbeat_slot:
+                    self._last_heartbeat_slot = current_slot
+                    self._send_heartbeat()
+
+                # 每10秒检查一次
+                time.sleep(10)
+            except Exception as e:
+                logger.error(f"心跳包线程异常: {e}")
+                time.sleep(10)
+
+        logger.info("心跳包线程已停止")
+
+    def _send_heartbeat(self):
+        """发送心跳包"""
+        if not self.telegram.enabled or not self.heartbeat_chat:
+            return
+
+        try:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            message = f"{self.heartbeat_message}\n\n{now_str}"
+            result = self.telegram.send_to_target(message, self.heartbeat_chat)
+            if result:
+                logger.info(f"心跳包已发送到: {self.heartbeat_chat}")
+            else:
+                logger.warning(f"心跳包发送失败: {self.heartbeat_chat}")
+        except Exception as e:
+            logger.error(f"心跳包发送异常: {e}")
 
     def _format_message(self, group: str, sender: str, content: str) -> str:
         """格式化 Telegram 消息"""
@@ -636,6 +720,12 @@ class FeishuMonitor:
             logger.info(f"监控群: {self.monitor_groups}")
         else:
             logger.info("监控所有群")
+
+        # 启动心跳包线程
+        if self.heartbeat_enabled and self.heartbeat_chat:
+            self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
+            self._heartbeat_thread.start()
+            logger.info(f"心跳包已启用，目标: {self.heartbeat_chat}")
 
         return True
 
