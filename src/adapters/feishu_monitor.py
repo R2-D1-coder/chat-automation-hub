@@ -407,10 +407,18 @@ class FeishuMonitor:
         msg += f"---\n"
         if group:
             msg += f"Group: {group}\n"
-        if sender:
-            msg += f"From: {sender}\n"
-        if content:
-            msg += f"Content:\n{content}\n"
+
+        sender = (sender or "").strip()
+        content = (content or "").strip().replace("\r\n", "\n").replace("\n", " ")
+        line = ""
+        if sender and content:
+            line = f"{sender}: {content}"
+        elif sender:
+            line = sender
+        elif content:
+            line = content
+        if line:
+            msg += f"{line}\n"
         msg += f"---\n"
         msg += f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         return msg
