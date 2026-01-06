@@ -11,7 +11,6 @@ import ctypes
 from ctypes import wintypes
 import threading
 import logging
-import os
 import asyncio
 from datetime import datetime
 from typing import Dict, List, Optional, Callable
@@ -43,7 +42,7 @@ WINEVENT_OUTOFCONTEXT = 0x0000
 user32 = ctypes.windll.user32
 
 
-def parse_notification_content(texts: List[str], monitor_groups: Optional[List[str]] = None) -> Dict[str, str]:
+def parse_notification_content(texts: List[str]) -> Dict[str, str]:
     """解析通知内容"""
     result = {
         "group": "",
@@ -51,71 +50,27 @@ def parse_notification_content(texts: List[str], monitor_groups: Optional[List[s
         "content": ""
     }
 
-    cleaned = [t.strip() for t in (texts or []) if t and str(t).strip()]
-    if not cleaned:
+    if not texts:
         return result
 
-    # 1) 优先用 monitor_groups 定位群名（Windows Toast 往往会额外带 App 名等字段）
-    group = ""
-    if monitor_groups:
-        for t in cleaned:
-            for g in monitor_groups:
-                if not g:
-                    continue
-                if g in t or t in g:
-                    group = t
-                    break
-            if group:
-                break
+    if len(texts) > 0:
+        result["group"] = texts[0]
 
-    # 2) 兜底：找一个不像“发送者: 内容”的行当群名
-    if not group:
-        for t in cleaned:
-            if t in ("飞书", "Feishu", "Lark"):
-                continue
-            if ": " in t or "：" in t:
-                continue
-            group = t
-            break
-        if not group:
-            group = cleaned[0]
-
-    # 3) 找消息行（支持英文/中文冒号）
-    sep = None
-    message_text = ""
-    start_idx = 0
-    try:
-        start_idx = cleaned.index(group) + 1
-    except ValueError:
-        start_idx = 0
-
-    for t in cleaned[start_idx:]:
-        if ": " in t:
-            sep = ": "
-            message_text = t
-            break
-        if "：" in t:
-            sep = "："
-            message_text = t
-            break
-
-    if message_text and sep:
-        parts = message_text.split(sep, 1)
-        result["sender"] = parts[0].strip()
-        result["content"] = parts[1].strip() if len(parts) > 1 else ""
-    else:
-        # 兜底：取 group 后第一条非空文本作为内容
-        for t in cleaned[start_idx:]:
-            if t and t != group:
-                result["content"] = t
-                break
-
-    result["group"] = group
+    if len(texts) > 1:
+        message_text = texts[1]
+        if ": " in message_text:
+            parts = message_text.split(": ", 1)
+            result["sender"] = parts[0]
+            result["content"] = parts[1] if len(parts) > 1 else ""
+        else:
+            result["content"] = message_text
 
     return result
 
 
-def check_if_notification_window(hwnd, monitor_groups: Optional[List[str]] = None) -> Optional[Dict]:
+def check_if_notification_window(
+    hwnd,
+) -> Optional[Dict]:
     """检查窗口是否是通知弹窗"""
     if not HAS_UIAUTOMATION:
         return None
@@ -128,13 +83,27 @@ def check_if_notification_window(hwnd, monitor_groups: Optional[List[str]] = Non
         class_name = control.ClassName or ""
         name = control.Name or ""
 
+        # 明确仅支持 Chrome_WidgetWin（飞书通知弹窗窗口类）
+        if "Chrome_WidgetWin" not in class_name:
+            return None
+
         rect = control.BoundingRectangle
         width = rect.width() if rect else 0
         height = rect.height() if rect else 0
 
-        # 通知弹窗特征：小窗口（飞书应用内弹窗/Windows Toast 都符合）
-        is_small_window = 0 < width < 900 and 0 < height < 450
-        if not is_small_window:
+        # 通知弹窗特征：小窗口
+        is_small_window = 0 < width < 600 and 0 < height < 300
+        has_message_format = (": " in name or "（" in name or "(" in name) and len(name) < 150
+        is_very_small = 0 < width < 400 and 0 < height < 200
+
+        should_check = is_small_window and (has_message_format or is_very_small)
+
+        # 如果窗口名包含中文，也可能是通知
+        has_chinese = any('\u4e00' <= char <= '\u9fff' for char in name) if name else False
+        if not should_check and is_small_window and has_chinese:
+            should_check = True
+
+        if not should_check:
             return None
 
         # 收集窗口内的文本
@@ -144,9 +113,10 @@ def check_if_notification_window(hwnd, monitor_groups: Optional[List[str]] = Non
                 if depth > 5:
                     return
                 try:
-                    text = (ctrl.Name or "").strip()
-                    if text:
-                        texts.append(text)
+                    if ctrl.ControlTypeName == "TextControl":
+                        text = ctrl.Name or ""
+                        if text and text.strip():
+                            texts.append(text.strip())
                     for child in ctrl.GetChildren():
                         collect_texts(child, depth + 1)
                 except:
@@ -171,21 +141,6 @@ def check_if_notification_window(hwnd, monitor_groups: Optional[List[str]] = Non
             texts = deduped
 
         if not texts:
-            return None
-
-        # 限制：尽量只保留飞书相关（避免大量误判）
-        hay = " ".join(texts + [name, class_name])
-        has_feishu_keyword = ("飞书" in hay) or ("Feishu" in hay) or ("Lark" in hay)
-        has_group_match = False
-        if monitor_groups:
-            for g in monitor_groups:
-                if not g:
-                    continue
-                if g in hay:
-                    has_group_match = True
-                    break
-
-        if monitor_groups and not has_group_match and not has_feishu_keyword:
             return None
 
         return {
@@ -469,14 +424,11 @@ class FeishuMonitor:
             if event not in (EVENT_OBJECT_CREATE, EVENT_OBJECT_SHOW):
                 return
 
-            # 快速筛选：只处理小窗口（避免对系统大量事件做 UIA 解析）
+            # 快速检查窗口类名（明确仅支持 Chrome_WidgetWin）
             try:
-                rect = wintypes.RECT()
-                if not user32.GetWindowRect(hwnd, ctypes.byref(rect)):
-                    return
-                width = rect.right - rect.left
-                height = rect.bottom - rect.top
-                if width <= 0 or height <= 0 or width >= 900 or height >= 450:
+                class_name_buf = ctypes.create_unicode_buffer(256)
+                user32.GetClassNameW(hwnd, class_name_buf, 256)
+                if "Chrome_WidgetWin" not in class_name_buf.value:
                     return
             except Exception:
                 return
@@ -490,13 +442,12 @@ class FeishuMonitor:
                 self.known_windows[hwnd] = now
 
             # 延迟等待窗口加载
-            time.sleep(0.6)
+            time.sleep(0.4)
 
             # 检查是否是通知
-            notif_info = check_if_notification_window(hwnd, self.monitor_groups)
+            notif_info = check_if_notification_window(hwnd)
             if not notif_info:
-                time.sleep(0.3)
-                notif_info = check_if_notification_window(hwnd, self.monitor_groups)
+                return
             if not notif_info:
                 return
 
@@ -505,7 +456,7 @@ class FeishuMonitor:
                 return
 
             # 解析内容
-            parsed = parse_notification_content(texts, self.monitor_groups)
+            parsed = parse_notification_content(texts)
             group = parsed["group"]
             sender = parsed["sender"]
             content = parsed["content"]
@@ -568,6 +519,7 @@ class FeishuMonitor:
     def _run_message_loop(self):
         """运行消息循环（在独立线程中）"""
         uia_init = None
+        start_event_signaled = False
         try:
             # uiautomation 需要在当前线程进行 COM/UIAutomation 初始化，否则会报 “尚未调用 CoInitialize”
             if HAS_UIAUTOMATION:
@@ -589,13 +541,13 @@ class FeishuMonitor:
                 self._start_ok = False
                 self._start_error = "SetWinEventHook 失败"
                 logger.error("设置事件钩子失败")
-                self._start_event.set()
                 return
 
             self._start_ok = True
             self._start_error = None
             logger.info("事件钩子已设置")
             self._start_event.set()
+            start_event_signaled = True
 
             msg = wintypes.MSG()
 
@@ -614,7 +566,8 @@ class FeishuMonitor:
             logger.error(f"飞书监听线程异常: {e}")
         finally:
             # 确保 start() 不会无限等待
-            self._start_event.set()
+            if not start_event_signaled:
+                self._start_event.set()
 
             if self.hook:
                 try:
