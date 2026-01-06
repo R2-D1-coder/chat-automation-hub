@@ -9,6 +9,7 @@
     远程：http://<你的IP>:5000
 """
 import sys
+import logging
 from pathlib import Path
 
 # 添加项目根目录到路径
@@ -33,16 +34,19 @@ if __name__ == "__main__":
     print("=" * 60)
     print("微信群发管理中心")
     print("=" * 60)
-    
+
     # 清除旧日志
     clear_log_file()
-    
+
+    # 禁用 Flask/werkzeug 的访问日志
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
+
     print(f"本地访问: http://localhost:5000")
     print(f"远程访问: http://<你的IP>:5000")
     print("=" * 60)
     print("按 Ctrl+C 停止服务")
     print()
-    
+
     app = create_app()
     # 允许远程访问，开启调试模式查看详细错误
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
