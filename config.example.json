@@ -1,0 +1,45 @@
+{
+  "wechat": {
+    "per_message_delay_sec": 2.0,
+    "max_per_minute": 10,
+    "min_send_interval_sec": 10,
+    "screenshot_on_error": true,
+    "random_delay_minutes": 30,
+    "min_delay_between_groups_sec": 120
+  },
+  "safety": {
+    "armed": false,
+    "dry_run": true
+  },
+  "allowed_groups": [
+    "测试群1",
+    "测试群2"
+  ],
+  "broadcast": {
+    "groups": [
+      "测试群1"
+    ],
+    "text": "【自动通知】当前时间: {ts}\n这是一条测试消息。",
+    "image": "assets/test_image.png"
+  },
+  "feishu_monitor": {
+    "enabled": false,
+    "monitor_groups": [
+      "飞书群名1",
+      "飞书群名2"
+    ],
+    "dedupe_seconds": 5,
+    "telegram": {
+      "enabled": false,
+      "api_id": "YOUR_API_ID",
+      "api_hash": "YOUR_API_HASH",
+      "session": "YOUR_SESSION_STRING",
+      "chat": "-100xxxxxxxxxx"
+    },
+    "heartbeat": {
+      "enabled": false,
+      "chat": "-100xxxxxxxxxx",
+      "message": "一切正常"
+    }
+  }
+}
