@@ -447,15 +447,15 @@ class FeishuMonitor:
         self.on_notification: Optional[Callable[[str, str, str], None]] = None
 
     def _heartbeat_loop(self):
-        """心跳包发送线程：整点和半点发送"""
+        """心跳包发送线程：每10分钟发送"""
         logger.info("心跳包线程已启动")
         while self.running:
             try:
                 now = datetime.now()
                 minute = now.minute
-                # 检查是否是整点或半点（分钟为0或30）
-                is_heartbeat_time = minute == 0 or minute == 30
-                current_slot = (now.hour, minute // 30)  # 用(小时, 0或1)标识时间槽
+                # 检查是否是10分钟的倍数（分钟为0, 10, 20, 30, 40, 50）
+                is_heartbeat_time = minute % 10 == 0
+                current_slot = (now.hour, minute // 10)  # 用(小时, 0-5)标识时间槽
 
                 if is_heartbeat_time and current_slot != self._last_heartbeat_slot:
                     self._last_heartbeat_slot = current_slot
