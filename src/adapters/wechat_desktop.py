@@ -4,7 +4,6 @@
 """
 import io
 import random
-import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -64,27 +63,40 @@ def _copy_image_to_clipboard(image_path: Path) -> bool:
 
 def find_independent_chat_windows() -> List[Dict[str, Any]]:
     """
-    查找所有微信独立聊天窗口
-    
+    查找所有独立聊天窗口（微信/QQ等）
+
+    通过窗口名称匹配白名单来识别聊天窗口。
+    用户需确保群名具有唯一性（如 QQ 群加 "QQ-" 前缀）。
+
     Returns:
-        窗口信息列表，每个元素包含 name, pure_name, window, rect
+        窗口信息列表，每个元素包含 name, window, rect
     """
     windows = []
+
+    # 加载白名单
+    try:
+        config = load_config()
+        allowed_groups = set(config.get("allowed_groups", []))
+    except Exception:
+        allowed_groups = set()
+
+    if not allowed_groups:
+        log.warn("白名单为空，无法匹配聊天窗口")
+        return windows
+
     try:
         root = auto.GetRootControl()
-        
+
         for win in root.GetChildren():
             try:
-                class_name = win.ClassName or ""
                 name = win.Name or ""
-                
-                # 微信聊天窗口特征：Qt51514QWindowIcon 类名，且名字不是"微信"
-                if "Qt51514QWindowIcon" in class_name and name and name != "微信":
-                    # 提取纯群名（去掉可能的消息数，如 "家人们(5)" -> "家人们"）
-                    pure_name = re.sub(r'\(\d+\)$', '', name).strip()
+                if not name:
+                    continue
+
+                # 检查是否匹配白名单中的任意群名
+                if name in allowed_groups:
                     windows.append({
-                        "name": name,           # 原始窗口名（可能带消息数）
-                        "pure_name": pure_name, # 纯群名
+                        "name": name,
                         "window": win,
                         "rect": win.BoundingRectangle
                     })
@@ -92,32 +104,26 @@ def find_independent_chat_windows() -> List[Dict[str, Any]]:
                 pass
     except Exception as e:
         log.error(f"查找独立窗口失败", error=str(e))
-    
+
     return windows
 
 
 def find_window_by_group_name(group_name: str) -> Optional[Dict[str, Any]]:
     """
     按群名查找独立窗口
-    
+
     Args:
         group_name: 群名称
-        
+
     Returns:
         窗口信息字典，未找到返回 None
     """
     windows = find_independent_chat_windows()
-    
-    # 精确匹配
+
     for w in windows:
-        if w["pure_name"] == group_name or w["name"] == group_name:
+        if w["name"] == group_name:
             return w
-    
-    # 模糊匹配
-    for w in windows:
-        if group_name in w["pure_name"] or group_name in w["name"]:
-            return w
-    
+
     return None
 
 
@@ -262,7 +268,7 @@ class WeChatBroadcaster:
         
         log.info(f"找到 {len(available)} 个独立聊天窗口:")
         for w in available:
-            log.info(f"  - {w['pure_name']}")
+            log.info(f"  - {w['name']}")
         
         # 检查目标群是否都有窗口
         missing = [g for g in groups if not find_window_by_group_name(g)]

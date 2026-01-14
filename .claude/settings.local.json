@@ -14,7 +14,17 @@
       "Bash(ls:*)",
       "Bash(tasklist:*)",
       "Bash(curl:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(chcp 65001)",
+      "Bash(PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe -c \"\nimport asyncio\nfrom telethon import TelegramClient\nfrom telethon.sessions import StringSession\n\nsession = ''1BVtsOIIBu3tqzGb9m2b7iOCoaZv0pr9pI3qvabHv-FYHgk0R8kz30ql96p6lMSYoZagqGQCMG0WD8owfDEhaXazC-Ndt3qe_i-UkxqzBVqwhokl5zsZlBDfF_bPnPWyBki9Kf6PcjThRRmLwrOGnQr1sG4vyg2qYhrFobi1-WsYDqQE0w7HYwVQLSXXJV_iWTo9ZbI2fipqovdRKET0kWxV583xVfVHOaUejB80Sz2LnPyX2LcqamaLZmYaZ_ZUoxeShWN2jMJiv3IjfEyWe5kkgHfFEUT14lptez-HBu-P_64HUggQXveR0ZwoSQnA8CgpjrAr9s39Y1KnOrLRdcoy7-0-0bjU=''\napi_id = 11876733\napi_hash = ''77f852c41e130ea83bac7674b4160d36''\n\nasync def main\\(\\):\n    client = TelegramClient\\(StringSession\\(session\\), api_id, api_hash\\)\n    await client.connect\\(\\)\n    async for dialog in client.iter_dialogs\\(limit=100\\):\n        name = dialog.name or ''''\n        print\\(f''{name}: {dialog.id}''\\)\n    await client.disconnect\\(\\)\n\nasyncio.run\\(main\\(\\)\\)\n\")",
+      "Bash(PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe:*)",
+      "Bash(git rm:*)",
+      "Bash(powershell -Command \"Get-Date -Format ''yyyy-MM-dd dddd''\")",
+      "Bash(powershell -Command \"[int]\\(Get-Date\\).DayOfWeek\")",
+      "Bash(.venv\\\\Scripts\\\\python.exe:*)",
+      "Bash(c:\\\\Users\\\\Administrator\\\\Documents\\\\GitHub\\\\chat-automation-hub\\\\.venv\\\\Scripts\\\\python.exe -c:*)"
     ]
   }
 }
