@@ -14,4 +14,4 @@ winrt-Windows.UI.Notifications.Management>=1.0.0
 winrt-Windows.Foundation>=1.0.0
 winrt-Windows.Foundation.Collections>=1.0.0
 winrt-Windows.ApplicationModel>=1.0.0
-
+telethon>=1.42.0
